@@ -1,0 +1,103 @@
+// pylon API를 사용하기 위한 헤더 파일 포함.
+#include <pylon/PylonIncludes.h>
+#include <opencv2/opencv.hpp> // 오픈cv2 헤더파일
+#include <time.h> //time을 쓰기 위한 헤더파일
+#ifdef PYLON_WIN_BUILD
+#    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
+#endif
+
+// pylon 객체 사용을 위한 네임스페이스.
+// cout 사용을 위한 네임스페이스.
+using namespace Pylon;
+using namespace std;
+
+
+// cv 객체 사용을 위한 네임스페이스
+// std 사용을 위한 네임스페이스
+using namespace cv;
+using namespace std;
+
+// 캡처할 이미지의 수를 정의.
+static const uint32_t c_countOfImagesToGrab = 100;
+
+
+
+int main(int /*argc*/, char* /*argv*/[])
+{
+
+
+    // 이미지 결과 연산을 시켜줄 변수
+    clock_t start, end;
+    double minVal, maxVal;
+    Point minLoc, maxLoc;
+    Point matchLoc;
+
+    // 샘플 애플리케이션의 종료 코드.
+    int exitCode = 0;
+
+    // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
+    PylonInitialize();
+
+    try
+    {
+        // 첫 번째로 찾은 카메라 장치로 인스턴트 카메라 객체 생성.
+        CInstantCamera camera(CTlFactory::GetInstance().CreateFirstDevice());
+
+        // 카메라의 모델 이름 출력.
+        cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
+
+        // MaxNumBuffer 파라미터는 캡처를 위해 할당된 버퍼의 수를 제어하는 데 사용될 수 있음.
+        // 이 파라미터의 기본값은 10.
+        camera.MaxNumBuffer = 5;
+
+        // c_countOfImagesToGrab 이미지의 캡처 시작.
+        // 카메라 장치는 연속 취득을 설정하는 기본 구성으로 파라미터화됨.
+        camera.StartGrabbing(c_countOfImagesToGrab);
+
+        // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
+        CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
+
+        // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
+        while (camera.IsGrabbing())
+        {
+            // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
+            camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
+
+            // 이미지가 성공적으로 캡처되었는가?
+            if (ptrGrabResult->GrabSucceeded())
+            {
+                // 이미지 데이터에 접근.  // 접근~캡쳐된 이미지를 표시 하는 부분에서 grab 만져보기
+                cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
+                cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
+                const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
+                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
+
+#ifdef PYLON_WIN_BUILD
+                // 캡처된 이미지를 표시.
+                Pylon::DisplayImage(1, ptrGrabResult);
+#endif
+            }
+            else
+            {
+                // 오류 메시지 출력.
+                cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << endl;
+            }
+        }
+    }
+    catch (const GenericException& e)
+    {
+        // 예외 처리.
+        cerr << "An exception occurred." << endl
+            << e.GetDescription() << endl;
+        exitCode = 1;
+    }
+
+    // 종료 전에 대기를 비활성화하려면 다음 두 줄을 주석 처리.
+    cerr << endl << "Press enter to exit." << endl;
+    while (cin.get() != '\n');
+
+    // 모든 pylon 리소스를 해제.
+    PylonTerminate();
+
+    return exitCode;
+}
