@@ -1,7 +1,9 @@
 // pylon API를 사용하기 위한 헤더 파일 포함.
 #include <pylon/PylonIncludes.h>
-#include <opencv2/opencv.hpp> // 오픈cv2 헤더파일
-#include <time.h> //time을 쓰기 위한 헤더파일
+// openCV를 사용하기 위한 헤더파일
+#include <opencv2/opencv.hpp> 
+//time을 쓰기 위한 헤더파일
+#include <time.h> 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
@@ -31,12 +33,19 @@ int main(int /*argc*/, char* /*argv*/[])
     double minVal, maxVal;
     Point minLoc, maxLoc;
     Point matchLoc;
+    Mat result;
+    //시간 경과를 보여줄 것
+    int time_watch = 0;
 
     // 샘플 애플리케이션의 종료 코드.
     int exitCode = 0;
 
     // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
     PylonInitialize();
+
+    //템블릿 이미지 저장
+    Mat templ = imread("templ.png");
+
 
     try
     {
@@ -57,30 +66,93 @@ int main(int /*argc*/, char* /*argv*/[])
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
         CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
 
+        
+
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
+            //시간경과를 보여주기 위해 증가
+            time_watch++;
+
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
             camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
             {
+                //이미지 받아오고 src형변환 후 imshow
+                Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
+
+
+                
+
                 // 이미지 데이터에 접근.  // 접근~캡쳐된 이미지를 표시 하는 부분에서 grab 만져보기
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
                 cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
-                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
+                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
+                cout << "time : " << time_watch << endl << endl;
+
+                for (int i = 0; i < 6; i++)
+                {
+                    Mat img_out;
+                    src.copyTo(img_out);
+
+                    int Matching_method = i;
+                    /*
+                    0: TM_SQDIFF
+                    1: TM_SQDIFF NORMED
+                    2: TM CCORR
+                    3: TM CCORR NORMED
+                    4: TM COEFF
+                    5: TM COEFF NORMED";
+                    */
+
+                    start = clock();
+
+                    // 원본 이미지에서 탬픞릿 이미지와 일치하는 영역을 찾는 알고리즘
+                    matchTemplate(src, templ, result, i); //여기서 에러
+
+                    // normalize를 이용해서 이미지 정규화, 필터의 종류, 0~1까지 분포
+                    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+                    // 주어진 행력의 최소값, 최대값을 찾는 함수로 최소값, 최대값이 있는 좌표정보도 함께 알아낼 수 있음
+                    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+
+                    //1,2번째 반복문에서는 minLoc
+                    // 3~6번째 반복문에서는 maxLoc
+                    if (Matching_method == 0 || Matching_method == 1)
+                    {
+                        matchLoc = minLoc;
+                    }
+                    else
+                        matchLoc = maxLoc;
+
+                    rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
+
+                    //cvtColor 함수를 이용하여 결과사진을 gray로 변경
+                    cvtColor(result, result, COLOR_GRAY2BGR);
+
+                    //좌표로 설정된 사각형 색 설정같음
+                    circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
+
+                    // imshow 이미지 출력 함수
+                    imshow("src", img_out);
+                    imshow("templ", templ);
+                    imshow("result", result);
+
+                    waitKey();
+                }
 
 #ifdef PYLON_WIN_BUILD
                 // 캡처된 이미지를 표시.
-                Pylon::DisplayImage(1, ptrGrabResult);
+                //Pylon::DisplayImage(1, ptrGrabResult);
 #endif
             }
             else
             {
                 // 오류 메시지 출력.
-                cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << endl;
+                cout << "Error 쵸비상: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << endl;
             }
         }
     }

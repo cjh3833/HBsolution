@@ -1,7 +1,9 @@
 // pylon API를 사용하기 위한 헤더 파일 포함.
 #include <pylon/PylonIncludes.h>
-#include <opencv2/opencv.hpp> // 오픈cv2 헤더파일
-#include <time.h> //time을 쓰기 위한 헤더파일
+// openCV를 사용하기 위한 헤더파일
+#include <opencv2/opencv.hpp> 
+//time을 쓰기 위한 헤더파일
+#include <time.h> 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
@@ -32,11 +34,18 @@ int main(int /*argc*/, char* /*argv*/[])
     Point minLoc, maxLoc;
     Point matchLoc;
 
+    //시간 경과를 보여줄 것
+    int time_watch = 0;
+
     // 샘플 애플리케이션의 종료 코드.
     int exitCode = 0;
 
     // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
     PylonInitialize();
+
+    //템블릿 이미지 저장
+    Mat templ = imread("templ.png");
+
 
     try
     {
@@ -57,9 +66,15 @@ int main(int /*argc*/, char* /*argv*/[])
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
         CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
 
+        //src로 형변환
+        Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
+
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
+            //시간경과를 보여주기 위해 증가
+            time_watch++;
+
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
             camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
@@ -70,7 +85,8 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
                 cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
-                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl << endl;
+                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
+                cout << "time : " << time_watch << endl << endl;
 
 #ifdef PYLON_WIN_BUILD
                 // 캡처된 이미지를 표시.
