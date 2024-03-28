@@ -44,8 +44,7 @@ int main(int /*argc*/, char* /*argv*/[])
     PylonInitialize();
 
     //템블릿 이미지 저장
-    Mat templ = imread("templ.png");
-
+    Mat templ = imread("templ_1010.png");
 
     try
     {
@@ -65,9 +64,8 @@ int main(int /*argc*/, char* /*argv*/[])
 
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
         CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
-
+        Mat test, src;
         
-
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
@@ -81,10 +79,7 @@ int main(int /*argc*/, char* /*argv*/[])
             if (ptrGrabResult->GrabSucceeded())
             {
                 //이미지 받아오고 src형변환 후 imshow
-                Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
-
-
-                
+                //Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
 
                 // 이미지 데이터에 접근.  // 접근~캡쳐된 이미지를 표시 하는 부분에서 grab 만져보기
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
@@ -93,12 +88,16 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
                 cout << "time : " << time_watch << endl << endl;
 
-                for (int i = 0; i < 6; i++)
-                {
+                //이미지 받아오고 src형변환 후 imshow
+                src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)ptrGrabResult->GetBuffer());
+                
+
+                //for (int i = 0; i < 6; i++)  //확인 후 for문 삭제해본 뒤 비교, 화면이 여러 개 뜨는 이유 알아내기
+                //{
                     Mat img_out;
                     src.copyTo(img_out);
 
-                    int Matching_method = i;
+                    //int Matching_method = i;
                     /*
                     0: TM_SQDIFF
                     1: TM_SQDIFF NORMED
@@ -109,40 +108,54 @@ int main(int /*argc*/, char* /*argv*/[])
                     */
 
                     start = clock();
-
-                    // 원본 이미지에서 탬픞릿 이미지와 일치하는 영역을 찾는 알고리즘
-                    matchTemplate(src, templ, result, i); //여기서 에러
-
-                    // normalize를 이용해서 이미지 정규화, 필터의 종류, 0~1까지 분포
-                    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-
-                    // 주어진 행력의 최소값, 최대값을 찾는 함수로 최소값, 최대값이 있는 좌표정보도 함께 알아낼 수 있음
-                    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-
-                    //1,2번째 반복문에서는 minLoc
-                    // 3~6번째 반복문에서는 maxLoc
-                    if (Matching_method == 0 || Matching_method == 1)
+                    for (int i = 0; i < 2; i++)
                     {
-                        matchLoc = minLoc;
+                        // 원본 이미지에서 탬픞릿 이미지와 일치하는 영역을 찾는 알고리즘
+                        matchTemplate(src, templ, result, i);
+
+                        // normalize를 이용해서 이미지 정규화, 필터의 종류, 0~1까지 분포
+                        normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+                        // 주어진 행력의 최소값, 최대값을 찾는 함수로 최소값, 최대값이 있는 좌표정보도 함께 알아낼 수 있음
+                        minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+
+                        //1,2번째 반복문에서는 minLoc
+                        // 3~6번째 반복문에서는 maxLoc
+
+                        if (i == 0)
+                        {
+                            matchLoc = minLoc;
+
+                            rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
+
+                            //cvtColor 함수를 이용하여 결과사진을 gray로 변경
+                            cvtColor(result, result, COLOR_GRAY2BGR);
+
+                            //좌표로 설정된 사각형 색 설정같음
+                            //circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
+
+                            // imshow 이미지 출력 함수
+                            imshow("src", img_out);
+                            imshow("templ", templ);
+                            imshow("result", result);
+                        }
+                        else
+                        {
+                            matchLoc = maxLoc;
+
+                            rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
+
+                            //좌표로 설정된 사각형 색 설정같음
+                            //circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
+
+                            // imshow 이미지 출력 함수
+                            imshow("src", img_out);
+                            imshow("templ", templ);
+                            imshow("result", result);
+                        }
                     }
-                    else
-                        matchLoc = maxLoc;
-
-                    rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
-
-                    //cvtColor 함수를 이용하여 결과사진을 gray로 변경
-                    cvtColor(result, result, COLOR_GRAY2BGR);
-
-                    //좌표로 설정된 사각형 색 설정같음
-                    circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
-
-                    // imshow 이미지 출력 함수
-                    imshow("src", img_out);
-                    imshow("templ", templ);
-                    imshow("result", result);
-
-                    waitKey();
-                }
+                    waitKey(1);
+                //}
 
 #ifdef PYLON_WIN_BUILD
                 // 캡처된 이미지를 표시.
