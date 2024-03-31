@@ -22,12 +22,8 @@ using namespace std;
 // 캡처할 이미지의 수를 정의.
 static const uint32_t c_countOfImagesToGrab = 100;
 
-
-
 int main(int /*argc*/, char* /*argv*/[])
 {
-
-
     // 이미지 결과 연산을 시켜줄 변수
     clock_t start, end;
     double minVal, maxVal;
