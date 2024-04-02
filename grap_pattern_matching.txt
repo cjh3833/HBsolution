@@ -133,20 +133,15 @@ int main(int /*argc*/, char* /*argv*/[])
                         // 주어진 행력의 최소값, 최대값을 찾는 함수로 최소값, 최대값이 있는 좌표정보도 함께 알아낼 수 있음
                         minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 
-                        //처음은 minLoc나오게 출력
-                        // 그 뒤는 maxLoc나오게 출력
+                        //cvtColor 함수를 이용하여 결과사진을 gray로 변경  //코드 간단하게 할 수 있으면 수정
+                        cvtColor(result, result, COLOR_GRAY2BGR);
 
-                        if (i == 0)
-                        {
-                            matchLoc = minLoc;
+                        matchLoc = minLoc;
 
-                            rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
+                        rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
 
-                            //cvtColor 함수를 이용하여 결과사진을 gray로 변경  //코드 간단하게 할 수 있으면 수정
-                            cvtColor(result, result, COLOR_GRAY2BGR);
-
-                            i = 1;
-                        }
+                            
+                        /*
                         else
                         {
                             matchLoc = maxLoc;
@@ -155,6 +150,7 @@ int main(int /*argc*/, char* /*argv*/[])
 
                             i = 0;
                         }
+                        */
 
                         //좌표로 설정된 사각형 색 설정같음  BGR    
                         circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
