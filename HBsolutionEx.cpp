@@ -3,7 +3,7 @@
 // openCV를 사용하기 위한 헤더파일
 #include <opencv2/opencv.hpp> 
 //time을 쓰기 위한 헤더파일
-#include <time.h> 
+#include <time.h>
 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
@@ -29,12 +29,15 @@ int main(int /*argc*/, char* /*argv*/[])
     Point matchLoc;
     Mat result;
     int method = 1;
+    clock_t start, end;
 
     //임계값 설정
-    double threshold = 0.02;
+    double threshold_max = 0.03;
+    double threshold_min = 0.05;
 
     //시간 경과를 보여줄 것
     int time_watch = 0;
+    double time_working = 0.0;
 
     // 샘플 애플리케이션의 종료 코드.
     int exitCode = 0;
@@ -43,7 +46,8 @@ int main(int /*argc*/, char* /*argv*/[])
     PylonInitialize();
 
     //템블릿 이미지 저장
-    Mat templ = imread("templ_4_1.png");
+    Mat templ = imread("templ_4_1.png", cv::IMREAD_GRAYSCALE);
+    //Mat templ = imread("templ_4_1.png");
     Mat templ2 = imread("templ_5.png");
 
     try
@@ -66,16 +70,12 @@ int main(int /*argc*/, char* /*argv*/[])
         CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
         Mat test, src;
         Mat test2, src2;
-        
-        
-        
-        
+
         // 왜 ?
         CImageFormatConverter formatConverter;
-
-
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
         CPylonImage pylonImage;
+
 
 
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
@@ -87,43 +87,42 @@ int main(int /*argc*/, char* /*argv*/[])
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
             camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
-            
-
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
             {
                 //이미지 받아오고 src형변환 후 imshow
                 //Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
 
-                // 이미지 데이터에 접근.  // 접근~캡쳐된 이미지를 표시 하는 부분에서 grab 만져보기
+                // 이미지 데이터에 접근.
+                const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
                 cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
-                const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
                 cout << "time : " << time_watch << endl;
-                
 
                 //이미지 받아오고 src형변환 후 imshow
-                //gray로 변환해주었기때문에 CV_8UC3으로 변경 dvd
+                //gray로 변환해주었기때문에 CV_8UC3으로 변경
                 //src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)ptrGrabResult->GetBuffer());
 
                 // 왜 ?
                 formatConverter.Convert(pylonImage, ptrGrabResult);
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
+                cv::cvtColor(src, src, COLOR_BGR2GRAY);
 
 
                 Mat img_out;
                 src.copyTo(img_out);
 
                 /* 매칭 방법
-                0: TM_SQDIFF (일치하면 할수록 값이 작아짐)
-                1: TM_SQDIFF NORMED (일치하면 할수록 값이 작아짐)
+                0: TM_SQDIFF //일치하면 할수록 값이 작아짐
+                1: TM_SQDIFF NORMED //일치하면 할수록 값이 작아짐
                 2: TM CCORR
                 3: TM CCORR NORMED
                 4: TM COEFF
-                5: TM COEFF NORMED";
+                5: TM COEFF NORMED
                 */
 
+                start = clock();
 
                 // 원본 이미지에서 탬픞릿 이미지와 일치하는 영역을 찾는 알고리즘
                 matchTemplate(src, templ, result, method);
@@ -134,9 +133,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 //Val -> 값 표시,     Loc -> 좌표표시
                 minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 
+
+                //작동시간 체크 이후 GRAY로 변경, 그 뒤 작동시간 체크, geometric, masking기법 사용
                 for (int i = 0; i < result.rows; i++) {
                     for (int j = 0; j < result.cols; j++) {
-                        if (result.at<float>(i, j) <= threshold) {
+                        if (result.at<float>(i, j) <= threshold_min && result.at<float>(i, j) >= threshold_max) {
                             // 임계값 이상의 좌표에 template(pattern) 크기만큼을 더해 사각형을 그림.
                             // OpenCV의 경우 RGB 순서가 아닌 BGR 순서로 표시함.
                             rectangle(img_out, Point(j, i), Point(j + templ.cols, i + templ.rows), Scalar(0, 0, 255), 1);
@@ -144,9 +145,8 @@ int main(int /*argc*/, char* /*argv*/[])
                     }
                 }
 
-
                 //cvtColor 함수를 이용하여 결과사진을 gray로 변경  //코드 간단하게 할 수 있으면 수정
-                //cvtColor(result, result, COLOR_GRAY2BGR);
+                //cvtColor(result, result, COLOR_GRAY2BGR); 
 
                 /*
                 matchLoc = maxLoc;
@@ -156,12 +156,12 @@ int main(int /*argc*/, char* /*argv*/[])
                 /*
                 matchLoc = minLoc;
 
-                if (maxVal >= threshold) 
+                if (maxVal >= threshold)
                 {
                 //matchLoc에 네모로 좌표 찍어줌
                 rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
 
-                //GRAY에 찾은 곳을 빨간색으로 동그라미 찍어줌   
+                //GRAY에 찾은 곳을 빨간색으로 동그라미 찍어줌
                 circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
                 //rectangle(result, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
 
@@ -169,15 +169,22 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "maxVal : " << maxVal << endl << endl;
                 }
                 */
+
+                end = clock();
+                double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
                 
+                cout << "연산시간 : " << searching_time << endl << endl;
+
+                //cout << "working time : " << endl << endl; // 작동하는 시간 추가
 
                  // imshow 이미지 출력 함수
-                 imshow("src", img_out);
-                 imshow("templ", templ);
-                 imshow("result", result);
-                    
-                 waitKey(1);
-                
+
+                imshow("src", img_out);
+                imshow("templ", templ);
+                imshow("result", result);
+
+                waitKey(1);
+
 
 #ifdef PYLON_WIN_BUILD
                 // 캡처된 이미지를 표시.
