@@ -1,3 +1,5 @@
+/* multi pattern matching 4월8일*/
+
 // pylon API를 사용하기 위한 헤더 파일 포함.
 #include <pylon/PylonIncludes.h>
 // openCV를 사용하기 위한 헤더파일
@@ -21,6 +23,30 @@ using namespace std;
 // 캡처할 이미지의 수를 정의.
 static const uint32_t c_countOfImagesToGrab = 300;
 
+/* 히스토그램
+void drawHist(int histogram[])
+{
+    int hist_w = 659;
+    int hist_h = 494;
+    int bin_w = cvRound((double)hist_w / 256);
+
+    Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(255, 255, 255));
+
+    int max = histogram[0];
+    for (int i = 1; i < 256; i++) {
+        histogram[i] = floor(((double)histogram[i] / max) * histImage.rows);
+    }
+
+    for(int i = 0; i < 255; i++) {
+        line(histImage, Point(bin_w * (i), hist_h),
+            Point(bin_w * (i), hist_h - histogram[i]),
+            Scalar(0, 0, 255));
+    }
+    imshow("Histogram", histImage);
+}
+*/
+
+
 int main(int /*argc*/, char* /*argv*/[])
 {
     // 이미지 결과 연산을 시켜줄 변수
@@ -30,6 +56,9 @@ int main(int /*argc*/, char* /*argv*/[])
     Mat result;
     int method = 1;
     clock_t start, end;
+
+    //히스토그램
+    int histogram[256] = { 0 };
 
     //임계값 설정
     double threshold_max = 0.03;
@@ -76,8 +105,6 @@ int main(int /*argc*/, char* /*argv*/[])
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
         CPylonImage pylonImage;
 
-
-
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
@@ -90,9 +117,6 @@ int main(int /*argc*/, char* /*argv*/[])
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
             {
-                //이미지 받아오고 src형변환 후 imshow
-                //Mat src(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, ptrGrabResult->GetBuffer());
-
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
@@ -109,7 +133,6 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
                 cv::cvtColor(src, src, COLOR_BGR2GRAY);
 
-
                 Mat img_out;
                 src.copyTo(img_out);
 
@@ -124,7 +147,7 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 start = clock();
 
-                // 원본 이미지에서 탬픞릿 이미지와 일치하는 영역을 찾는 알고리즘
+                // 원본 이미지에서 탬플릿 이미지와 일치하는 영역을 찾는 알고리즘
                 matchTemplate(src, templ, result, method);
                 // normalize를 이용해서 이미지 정규화, 필터의 종류, 0~1까지 분포
                 normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
@@ -133,7 +156,6 @@ int main(int /*argc*/, char* /*argv*/[])
                 //Val -> 값 표시,     Loc -> 좌표표시
                 minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 
-
                 //작동시간 체크 이후 GRAY로 변경, 그 뒤 작동시간 체크, geometric, masking기법 사용
                 for (int i = 0; i < result.rows; i++) {
                     for (int j = 0; j < result.cols; j++) {
@@ -141,38 +163,35 @@ int main(int /*argc*/, char* /*argv*/[])
                             // 임계값 이상의 좌표에 template(pattern) 크기만큼을 더해 사각형을 그림.
                             // OpenCV의 경우 RGB 순서가 아닌 BGR 순서로 표시함.
                             rectangle(img_out, Point(j, i), Point(j + templ.cols, i + templ.rows), Scalar(0, 0, 255), 1);
+                            histogram[(int)img_out.at<uchar>(i, j)]++;
+
                         }
                     }
                 }
 
-                //cvtColor 함수를 이용하여 결과사진을 gray로 변경  //코드 간단하게 할 수 있으면 수정
-                //cvtColor(result, result, COLOR_GRAY2BGR); 
-
-                /*
-                matchLoc = maxLoc;
-                rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
-                */
-
-                /*
-                matchLoc = minLoc;
-
-                if (maxVal >= threshold)
-                {
-                //matchLoc에 네모로 좌표 찍어줌
-                rectangle(img_out, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
-
-                //GRAY에 찾은 곳을 빨간색으로 동그라미 찍어줌
-                circle(result, matchLoc, 3, Scalar(0, 0, 255), 1);
-                //rectangle(result, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 1);
-
-                cout << "minVal : " << minVal  << endl;
-                cout << "maxVal : " << maxVal << endl << endl;
-                }
-                */
-
                 end = clock();
                 double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
-                
+
+                int hist_w = ptrGrabResult->GetWidth();
+                int hist_h = ptrGrabResult->GetHeight();
+                int bin_w = cvRound((double)hist_w / 256);
+
+                Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(255, 255, 255));
+
+                int max = histogram[0];
+                for (int i = 1; i < 256; i++) {
+                    histogram[i] = floor(((double)histogram[i] / max) * histImage.rows);
+                }
+
+                for (int i = 0; i < 255; i++) {
+                    line(histImage, Point(bin_w * (i), hist_h),
+                        Point(bin_w * (i), hist_h - histogram[i]),
+                        Scalar(0, 0, 255));
+                }
+                imshow("Histogram", histImage);
+
+                //drawHist(histogram);
+
                 cout << "연산시간 : " << searching_time << endl << endl;
 
                 //cout << "working time : " << endl << endl; // 작동하는 시간 추가
