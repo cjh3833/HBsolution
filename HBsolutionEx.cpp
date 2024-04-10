@@ -1,4 +1,4 @@
-/* 
+/* abort has been called
 *  HB솔루션
 *  multi pattern matching 4월8일
 *  histogram 색 출력 구현 4월 9일
@@ -40,7 +40,7 @@ void calc_Histo(const Mat& image, Mat& hist, int bins, int range_max = 256)
 }
 
 //히스토그램 드로잉 함수
-void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256,200)) {
+void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
     hist_img = Mat(size, CV_8U, Scalar(255)); //그래프 행렬
     float bin = (float)hist_img.cols / hist.rows; // 한 계급 너비
     normalize(hist, hist, 0, hist_img.rows, NORM_MINMAX);
@@ -56,6 +56,13 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256,200)) {
             rectangle(hist_img, pt1, pt2, Scalar(0), -1); // 막대 사각형 그리기
     }
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
+}
+
+void create_hist(Mat img, Mat& hist, Mat& hist_img)
+{
+    int histsize = 256, range = 256;
+    calc_Histo(img, hist, histsize, range); // 히스토그램 계산
+    draw_histo(hist, hist_img); //히스토그램 그래프 그리기
 }
 
 int main(int /*argc*/, char* /*argv*/[])
@@ -146,7 +153,6 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 Mat img_out;
                 src.copyTo(img_out);
-
                 /* 매칭 방법
                 0: TM_SQDIFF //일치하면 할수록 값이 작아짐
                 1: TM_SQDIFF NORMED //일치하면 할수록 값이 작아짐
@@ -183,19 +189,54 @@ int main(int /*argc*/, char* /*argv*/[])
                 end = clock();
                 double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
 
+                Mat dst1, dst2, hist_img1, hist_img2;
+                
+                //되는것
                 Mat hist, hist_img;
-                calc_Histo(src, hist, 256); //히스토그램 계산함수
-                draw_histo(hist, hist_img); // 히스토그램 그래프 드로잉
 
-                //drawHist(histogram);
+                create_hist(src, hist, hist_img); // 히스토그램 및 그래프 그리기
 
-                cout << "연산시간 : " << searching_time << endl << endl;
+                ////히스토그램 누적합 계산
+                //Mat accum_hist = Mat(hist.size(), hist.type(), Scalar(0));
+                //accum_hist.at<float>(0) = hist.at<float>(0);
 
-                // imshow 이미지 출력 함수
-                imshow("hist_img", hist_img);
+                //for (int i = i; i < hist.rows; i++) {
+                //    accum_hist.at<float>(i) = accum_hist.at<float>(i - 1) + hist.at<float>(i);
+                //}
+
+                //accum_hist /= sum(hist)[0];
+                //accum_hist *= 255;
+                //dst1 = Mat(src.size(), CV_8U);
+                ////중복연산 체크 ㄲ
+                //for (int i = 0; i < src.rows; i++) {
+                //    for (int j = 0; j < src.cols; j++)
+                //    {
+                //        int idx = src.at<uchar>(i, j);
+                //        dst1.at<uchar>(i, j) = (uchar)accum_hist.at<float>(idx);
+                //    }
+                //}
+
+                //equalizeHist(src, dst2);
+                //create_hist(dst1, hist, hist_img1);
+                //create_hist(dst2, hist, hist_img2);
+                //
+                ////히스토그램 GRAY 출력
+                ////create_hist(src, hist, hist_img);
+
+                //cout << "연산시간 : " << searching_time << endl << endl;
+
+                //// imshow 이미지 출력 함수
+                //imshow("dst1-User", dst1); 
+                //imshow("User_hist", hist_img1); // 사용자 평활화
+                //imshow("dst2-OpenCV", dst2); 
+                //imshow("OpenCV_hist", hist_img2); // OpenCV 평활화
+
+                imshow("hist", hist_img);
                 imshow("src", img_out);
                 imshow("templ", templ);
                 imshow("result", result);
+
+
 
                 waitKey(1);
 
