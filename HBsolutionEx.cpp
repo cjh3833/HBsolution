@@ -43,7 +43,7 @@ void calc_Histo(const Mat& image, Mat& hist, int bins, int range_max = 256)
 void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
     hist_img = Mat(size, CV_8U, Scalar(255)); //그래프 행렬
     float bin = (float)hist_img.cols / hist.rows; // 한 계급 너비
-    normalize(hist, hist, 0, hist_img.rows, NORM_MINMAX);
+    normalize(hist, hist, 0, hist_img.rows, NORM_MINMAX); // 정규화
 
     for (int i = 0; i < hist.rows; i++)
     {
@@ -58,7 +58,7 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
 }
 
-void create_hist(Mat img, Mat& hist, Mat& hist_img)
+void create_hist(Mat img, Mat& hist, Mat& hist_img)  //히스토그램 그리는 클래스
 {
     int histsize = 256, range = 256;
     calc_Histo(img, hist, histsize, range); // 히스토그램 계산
@@ -68,11 +68,10 @@ void create_hist(Mat img, Mat& hist, Mat& hist_img)
 int main(int /*argc*/, char* /*argv*/[])
 {
     // 이미지 결과 연산을 시켜줄 변수
-    double minVal, maxVal;
-    Point minLoc, maxLoc;
-    Point matchLoc;
-    Mat result;
     int method = 1;
+    double minVal, maxVal;
+    Point minLoc, maxLoc, matchLoc;
+    Mat result;
     clock_t start, end;
 
     //히스토그램
@@ -94,8 +93,6 @@ int main(int /*argc*/, char* /*argv*/[])
 
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE);
-    //Mat templ = imread("templ_4_1.png");
-    Mat templ2 = imread("templ_5.png");
 
     try
     {
@@ -114,7 +111,7 @@ int main(int /*argc*/, char* /*argv*/[])
         camera.StartGrabbing(c_countOfImagesToGrab);
 
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
-        CGrabResultPtr ptrGrabResult;  //캡쳐결과를 받으면 이걸 패턴매칭에 연결시키면 ?
+        CGrabResultPtr ptrGrabResult;
         Mat test, src;
         Mat test2, src2;
 
@@ -149,20 +146,12 @@ int main(int /*argc*/, char* /*argv*/[])
                 // 왜 ?
                 formatConverter.Convert(pylonImage, ptrGrabResult);
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
-                cv::cvtColor(src, src, COLOR_BGR2GRAY);
+                cv::cvtColor(src, src, COLOR_BGR2GRAY); //GRAY로 받아줌
 
                 Mat img_out;
-                src.copyTo(img_out);
-                /* 매칭 방법
-                0: TM_SQDIFF //일치하면 할수록 값이 작아짐
-                1: TM_SQDIFF NORMED //일치하면 할수록 값이 작아짐
-                2: TM CCORR
-                3: TM CCORR NORMED
-                4: TM COEFF
-                5: TM COEFF NORMED
-                */
+                src.copyTo(img_out); //src을 img_out으로 얕은 복사, 패턴매칭 하기위함
 
-                start = clock();
+                start = clock(); //시간체크 시작
 
                 // 원본 이미지에서 탬플릿 이미지와 일치하는 영역을 찾는 알고리즘
                 matchTemplate(src, templ, result, method);
@@ -186,57 +175,21 @@ int main(int /*argc*/, char* /*argv*/[])
                     }
                 }
 
-                end = clock();
+                end = clock(); //시간체크 끝
+
                 double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
 
-                Mat dst1, dst2, hist_img1, hist_img2;
+                Mat src_hist, src_hist_img, templ_hist, templ_hist_img;
+
+                create_hist(templ, templ_hist, templ_hist_img); //templ 히스토그램 및 그래프 그리기
+                create_hist(src, src_hist, src_hist_img); // src 히스토그램 및 그래프 그리기
                 
-                //되는것
-                Mat hist, hist_img;
-
-                create_hist(src, hist, hist_img); // 히스토그램 및 그래프 그리기
-
-                ////히스토그램 누적합 계산
-                //Mat accum_hist = Mat(hist.size(), hist.type(), Scalar(0));
-                //accum_hist.at<float>(0) = hist.at<float>(0);
-
-                //for (int i = i; i < hist.rows; i++) {
-                //    accum_hist.at<float>(i) = accum_hist.at<float>(i - 1) + hist.at<float>(i);
-                //}
-
-                //accum_hist /= sum(hist)[0];
-                //accum_hist *= 255;
-                //dst1 = Mat(src.size(), CV_8U);
-                ////중복연산 체크 ㄲ
-                //for (int i = 0; i < src.rows; i++) {
-                //    for (int j = 0; j < src.cols; j++)
-                //    {
-                //        int idx = src.at<uchar>(i, j);
-                //        dst1.at<uchar>(i, j) = (uchar)accum_hist.at<float>(idx);
-                //    }
-                //}
-
-                //equalizeHist(src, dst2);
-                //create_hist(dst1, hist, hist_img1);
-                //create_hist(dst2, hist, hist_img2);
-                //
-                ////히스토그램 GRAY 출력
-                ////create_hist(src, hist, hist_img);
-
-                //cout << "연산시간 : " << searching_time << endl << endl;
-
-                //// imshow 이미지 출력 함수
-                //imshow("dst1-User", dst1); 
-                //imshow("User_hist", hist_img1); // 사용자 평활화
-                //imshow("dst2-OpenCV", dst2); 
-                //imshow("OpenCV_hist", hist_img2); // OpenCV 평활화
-
-                imshow("hist", hist_img);
+                //출력
                 imshow("src", img_out);
                 imshow("templ", templ);
                 imshow("result", result);
-
-
+                imshow("hist", src_hist_img);
+                imshow("templ_hist", templ_hist_img);
 
                 waitKey(1);
 
