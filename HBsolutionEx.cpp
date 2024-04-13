@@ -1,8 +1,6 @@
-/* abort has been called
+/* 
 *  HB솔루션
-*  multi pattern matching 4월8일
-*  histogram 색 출력 구현 4월 9일
-*  히스토그램 GRAY 구현 4월 10일
+* 4월 13일 templ 히스토그램 출력 및 코드정리
 */
 
 // pylon API를 사용하기 위한 헤더 파일 포함.
