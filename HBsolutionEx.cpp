@@ -1,6 +1,6 @@
 /* 
-*  HB솔루션
-* 4월 13일 templ 히스토그램 출력 및 코드정리
+* 2018848045 최재형 HB솔루션
+* 4월 13일 src, templ 히스토그램 출력 및 코드정리, 코드설명 완료
 */
 
 // pylon API를 사용하기 위한 헤더 파일 포함.
@@ -56,7 +56,8 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
 }
 
-void create_hist(Mat img, Mat& hist, Mat& hist_img)  //히스토그램 그리는 클래스
+//히스토그램 그리는 클래스
+void create_hist(Mat img, Mat& hist, Mat& hist_img)  
 {
     int histsize = 256, range = 256;
     calc_Histo(img, hist, histsize, range); // 히스토그램 계산
@@ -135,15 +136,17 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
                 cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
                 cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
-                cout << "time : " << time_watch << endl;
+                cout << "time : " << time_watch << endl << endl;
 
-                //이미지 받아오고 src형변환 후 imshow
-                //gray로 변환해주었기때문에 CV_8UC3으로 변경
-                //src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)ptrGrabResult->GetBuffer());
 
-                // 왜 ?
+                // 이미지 데이터 변환 후 그레이 스케일 변환 작업
+                // pylonImage에서 ptrGrabResult로 이미지 데이터를 변환하는 작업
                 formatConverter.Convert(pylonImage, ptrGrabResult);
+
+                // ptrGrabResult에서 가져온 이미지 데이터를 Mat형식으로 변환
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
+
+                //src이미지를 GRAY 스케일로 변환
                 cv::cvtColor(src, src, COLOR_BGR2GRAY); //GRAY로 받아줌
 
                 Mat img_out;
@@ -181,6 +184,27 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 create_hist(templ, templ_hist, templ_hist_img); //templ 히스토그램 및 그래프 그리기
                 create_hist(src, src_hist, src_hist_img); // src 히스토그램 및 그래프 그리기
+
+                // 히스토그램 2개 compareHist()로 비교해보기
+                // int method 
+                // 1, cv2.HISTCMP_CORREL : 상관관계
+                // 1 : 완전일치, -1 : 완전 불일치, 0 : 무관계
+                // 빠르지만 부정확
+                // 
+                // 2. cv2.HISTCMP_CHISQR : 카이제곱 검정
+                // 0 : 완전 일치, 무한대 : 완전 불일치
+                // 
+                // 3. cvHISTCMP_INTERSECT : 교차
+                // 1 : 완전 일치, 0: 완전 불일치(히스토그램이 1로 정규화된 경우)
+                // 
+                // 4. cv2.HISTCMP_BHATTACHARYYA " 밭타차야 거리
+                // 0 : 완전 일치, 1: 완전 불일치
+                // 느리지만 가장 정확
+                // 
+                // 5. EMD
+                // 직관적이지만 가장 느림
+                //compareHist(src_hist_img, templ_hist_img, 1); //hist1, hist2, int method
+                //이 뒤 해당하는 값에 따라 light controller, gain, exposer 값 수정
                 
                 //출력
                 imshow("src", img_out);
