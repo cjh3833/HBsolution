@@ -92,6 +92,11 @@ int main(int /*argc*/, char* /*argv*/[])
 
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE);
+    Mat src_compare = imread("src_img.png", cv::IMREAD_GRAYSCALE);
+
+    //compare histogram으로 하나 작성해두기
+    //Mat templ = imread("", cv::IMREAD_GRAYSCALE);
+
 
     try
     {
@@ -180,11 +185,18 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
 
-                Mat src_hist, src_hist_img, templ_hist, templ_hist_img;
-
-                create_hist(templ, templ_hist, templ_hist_img); //templ 히스토그램 및 그래프 그리기
-                create_hist(src, src_hist, src_hist_img); // src 히스토그램 및 그래프 그리기
-
+                Mat src_hist, src_hist_result, templ_hist, templ_hist_img;
+                Mat src_compare_hist, src_compare_result;
+                Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
+                 
+                // threshold(src, threshold_img, 200, 255, THRESH_BINARY); // 히스토그램의 이진화
+                //templ말고 compare histogram으로 하나 만들어두기
+                //create_hist(templ, templ_hist, templ_hist_img); //templ 히스토그램 및 그래프 그리기
+                create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
+                create_hist(src_compare, src_compare_hist, src_compare_result);
+                //create_hist(threshold_img, threshold_hist, threshold_hist_result);
+                
+                
                 // 히스토그램 2개 compareHist()로 비교해보기
                 // int method 
                 // 1, cv2.HISTCMP_CORREL : 상관관계
@@ -210,8 +222,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 imshow("src", img_out);
                 imshow("templ", templ);
                 imshow("result", result);
-                imshow("hist", src_hist_img);
-                imshow("templ_hist", templ_hist_img);
+                imshow("hist", src_hist_result);
+                imshow("Compare Histogram", src_compare_result);
+                //imshow("templ_hist", templ_hist_img); compare histogram 만들어두기
+                //imshow("Thresholded", threshold_img);
+                //imshow("threshold_hist_result", threshold_hist_result);
 
                 waitKey(1);
 

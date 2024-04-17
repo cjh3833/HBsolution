@@ -3,8 +3,27 @@
 3. 밝기 올리거나 내리기
 
 
-histogram의 pick 출력
+histogram의 peak 출력
 ex) 0~255 있으면 현재 pick : 128  이런식으로
 
-조명이 0이면 pick도 0일테니
-조명을 1씩 올리면서 최적의 pick 확인
+조명이 0이면 peak도 0일테니
+조명을 1씩 올리면서 최적의 peak 확인
+
+04_16
+- templ이 아닌 최적상태의 img_out을 histogram화 -> compare histogram
+- light controller, gain, 노출값 적절히 설정
+- 밝기 조절 후 gain,노출값 설정하는지 ? 아니면 밝기,gain,노출값 동시에 설정하는지
+
+
+
+04_17
+- histogram with masked
+- compare histogram은 그냥 바로 된거냐 or masked쓴 뒤의 모습인가, masked쓴 뒤 비교해야하는가 ?
+
+1. src에서 얕은복사로 하나 꺼넨 뒤 masked
+2. templ - masked된 이미지를 histogram화, 최적상태로 캡쳐로 한 뒤 templ사진 -> 영상에서 본 compare histogram
+3. img_out - masked된 이미지를 hitogram화, peak 확인하고 비교
+
+masked == GRAYSCALE ?
+
+// 결론 - 마스킹하니까 극과 극 이분법이라 비교 불가
