@@ -14,7 +14,7 @@ ex) 0~255 있으면 현재 pick : 128  이런식으로
 - light controller, gain, 노출값 적절히 설정
 - 밝기 조절 후 gain,노출값 설정하는지 ? 아니면 밝기,gain,노출값 동시에 설정하는지
 
-
+//결론 auto로 조정하지만 수동으로 조절할 수 있는지 확인해보기
 
 04_17
 - histogram with masked

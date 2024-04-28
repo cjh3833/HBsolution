@@ -27,14 +27,16 @@ using namespace std;
 static const uint32_t c_countOfImagesToGrab = 300;
 
 //히스토그램 계산 함수
-void calc_Histo(const Mat& image, Mat& hist, int bins, int range_max = 256)
+void calc_Histo(const Mat& img, Mat& hist, int bins, int range_max = 256)
 {
     int histSize[] = { bins }; // 히스토그램 계급 개수
     float range[] = { 0, (float)range_max }; // 0번 채널 화소값 범위
     int channels[] = { 0 }; //채널 목록 - 단일 채널
     const float* ranges[] = { range }; //모든 채널 화소 범위
 
-    calcHist(&image, 1, channels, Mat(), hist, 1, histSize, ranges);
+    calcHist(&img, 1, channels, Mat(), hist, 1, histSize, ranges);
+
+
 }
 
 //히스토그램 드로잉 함수
@@ -54,6 +56,8 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
             rectangle(hist_img, pt1, pt2, Scalar(0), -1); // 막대 사각형 그리기
     }
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
+
+
 }
 
 //히스토그램 그리는 클래스
@@ -64,6 +68,7 @@ void create_hist(Mat img, Mat& hist, Mat& hist_img)
     draw_histo(hist, hist_img); //히스토그램 그래프 그리기
 }
 
+
 int main(int /*argc*/, char* /*argv*/[])
 {
     // 이미지 결과 연산을 시켜줄 변수
@@ -72,6 +77,7 @@ int main(int /*argc*/, char* /*argv*/[])
     Point minLoc, maxLoc, matchLoc;
     Mat result;
     clock_t start, end;
+    int histsize = 256, range = 256;
 
     //히스토그램
     int histogram[256] = { 0 };
@@ -138,9 +144,10 @@ int main(int /*argc*/, char* /*argv*/[])
             {
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
-                cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
-                cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
-                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
+                cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
+                cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
+                cout << "Gray Peak : " << (uint32_t)pImageBuffer[0] << endl;
+                //cout << "Compare Peak : " <<
                 cout << "time : " << time_watch << endl << endl;
 
 
@@ -180,7 +187,6 @@ int main(int /*argc*/, char* /*argv*/[])
                         }
                     }
                 }
-
                 end = clock(); //시간체크 끝
 
                 double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
@@ -189,12 +195,26 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat src_compare_hist, src_compare_result;
                 Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
                  
-                // threshold(src, threshold_img, 200, 255, THRESH_BINARY); // 히스토그램의 이진화
-                //templ말고 compare histogram으로 하나 만들어두기
-                //create_hist(templ, templ_hist, templ_hist_img); //templ 히스토그램 및 그래프 그리기
-                create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
-                create_hist(src_compare, src_compare_hist, src_compare_result);
-                //create_hist(threshold_img, threshold_hist, threshold_hist_result);
+                //threshold(src, threshold_img, 200, 255, THRESH_BINARY); // 히스토그램의 이진화
+                
+
+                calc_Histo(src, src_hist, histsize, range); // 히스토그램 계산
+                draw_histo(src_hist, src_hist_result); //히스토그램 그래프 그리기
+
+                calc_Histo(src_compare, src_compare_hist, histsize, range); // 히스토그램 계산
+                draw_histo(src_compare_hist, src_compare_result); //히스토그램 그래프 그리기
+
+                //위 코드 함수
+                //create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
+                //create_hist(src_compare, src_compare_hist, src_compare_result);
+
+                //compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
+                //double compareplz = compareHist(result, result, HISTCMP_CORREL);
+                double compareplz = compareHist(result, src_compare, HISTCMP_CORREL);
+                cout << "compareplz : " << compareplz << endl << endl;
+
+
+                //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
                 
                 
                 // 히스토그램 2개 compareHist()로 비교해보기
