@@ -210,7 +210,7 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 //compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
                 //double compareplz = compareHist(result, result, HISTCMP_CORREL);
-                double compareplz = compareHist(result, src_compare, HISTCMP_CORREL);
+                double compareplz = compareHist(img_out, img_out, HISTCMP_CORREL);
                 cout << "compareplz : " << compareplz << endl << endl;
 
 
