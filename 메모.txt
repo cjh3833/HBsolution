@@ -25,5 +25,26 @@ ex) 0~255 있으면 현재 pick : 128  이런식으로
 3. img_out - masked된 이미지를 hitogram화, peak 확인하고 비교
 
 masked == GRAYSCALE ?
-
 // 결론 - 마스킹하니까 극과 극 이분법이라 비교 불가
+
+
+
+연구노트 7차
+
+04_29 월요일
+유사도는 float형태로,
+cv2.HISTCMP_CORREL : 상관관계
+1: 완전 일치, -1: 완전 불일치, 0: 무관계
+이 방법으로 comparehist 출력하기
+
+계산된 Histogram을 비교하는 것이 compareHist
+
+compareHist 비교오류 -> 차원이 달라 일어나는 문제 같음
+
+src (Height -> uint32_t     witgh -> uint32_t)    , 영상 uint8_t
+convert 해준 뒤 비교해보기
+
+c++ convert uint32_t to uint8_t
+
+
+비교할 내용을 정규화해주고 비교해야하나 ?

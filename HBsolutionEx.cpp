@@ -1,6 +1,5 @@
 /* 
 * 2018848045 최재형 HB솔루션
-* 4월 13일 src, templ 히스토그램 출력 및 코드정리, 코드설명 완료
 */
 
 // pylon API를 사용하기 위한 헤더 파일 포함.
@@ -156,6 +155,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 formatConverter.Convert(pylonImage, ptrGrabResult);
 
                 // ptrGrabResult에서 가져온 이미지 데이터를 Mat형식으로 변환
+                //GetHeight uint32_t
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
 
                 //src이미지를 GRAY 스케일로 변환
@@ -194,7 +194,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat src_hist, src_hist_result, templ_hist, templ_hist_img;
                 Mat src_compare_hist, src_compare_result;
                 Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
-                 
+                
                 //threshold(src, threshold_img, 200, 255, THRESH_BINARY); // 히스토그램의 이진화
                 
 
@@ -208,10 +208,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 //create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
                 //create_hist(src_compare, src_compare_hist, src_compare_result);
 
-                //compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
-                //double compareplz = compareHist(result, result, HISTCMP_CORREL);
-                double compareplz = compareHist(img_out, img_out, HISTCMP_CORREL);
-                cout << "compareplz : " << compareplz << endl << endl;
+                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
+                // 조건문로 유사도 일정 값 넘어가면 종료
+                //double compareSimilarity = compareHist(result, result, HISTCMP_CORREL);
+                double compareSimilarity = cv::compareHist(result, img_out, HISTCMP_CORREL);
+                cout << "compareSimilarity : " << compareSimilarity << endl << endl;
 
 
                 //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
