@@ -34,8 +34,6 @@ void calc_Histo(const Mat& img, Mat& hist, int bins, int range_max = 256)
     const float* ranges[] = { range }; //모든 채널 화소 범위
 
     calcHist(&img, 1, channels, Mat(), hist, 1, histSize, ranges);
-
-
 }
 
 //히스토그램 드로잉 함수
@@ -55,8 +53,6 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
             rectangle(hist_img, pt1, pt2, Scalar(0), -1); // 막대 사각형 그리기
     }
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
-
-
 }
 
 //히스토그램 그리는 클래스
@@ -208,10 +204,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 //create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
                 //create_hist(src_compare, src_compare_hist, src_compare_result);
 
-                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
+                
                 // 조건문로 유사도 일정 값 넘어가면 종료
                 //double compareSimilarity = compareHist(result, result, HISTCMP_CORREL);
-                double compareSimilarity = cv::compareHist(result, img_out, HISTCMP_CORREL);
+                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
+                double compareSimilarity = cv::compareHist(result, result, HISTCMP_CORREL);
                 cout << "compareSimilarity : " << compareSimilarity << endl << endl;
 
 
