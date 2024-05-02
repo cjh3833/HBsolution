@@ -2,17 +2,24 @@
 * 2018848045 최재형 HB솔루션
 */
 
+
+
+
 // pylon API를 사용하기 위한 헤더 파일 포함.
 #include <pylon/PylonIncludes.h>
 // openCV를 사용하기 위한 헤더파일
 #include <opencv2/opencv.hpp> 
 //time을 쓰기 위한 헤더파일
 #include <time.h>
+// Include files used by samples.
+
 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
 
+// Include file to use pylon universal instant camera parameters.
+#include <pylon/BaslerUniversalInstantCamera.h>
 
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
@@ -21,6 +28,9 @@ using namespace Pylon;
 // std 사용을 위한 네임스페이스
 using namespace cv;
 using namespace std;
+
+// Namespace for using pylon universal instant camera parameters.
+using namespace Basler_UniversalCameraParams;
 
 // 캡처할 이미지의 수를 정의.
 static const uint32_t c_countOfImagesToGrab = 300;
@@ -91,9 +101,10 @@ int main(int /*argc*/, char* /*argv*/[])
     // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
     PylonInitialize();
 
+
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE);
-    Mat src_compare = imread("src_img.png", cv::IMREAD_GRAYSCALE);
+    Mat src_compare = imread("dark.png", cv::IMREAD_GRAYSCALE);
 
     //compare histogram으로 하나 작성해두기
     //Mat templ = imread("", cv::IMREAD_GRAYSCALE);
@@ -103,14 +114,14 @@ int main(int /*argc*/, char* /*argv*/[])
     {
         // 첫 번째로 찾은 카메라 장치로 인스턴트 카메라 객체 생성.
         CInstantCamera camera(CTlFactory::GetInstance().CreateFirstDevice());
-
+        
         // 카메라의 모델 이름 출력.
         cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
 
         // MaxNumBuffer 파라미터는 캡처를 위해 할당된 버퍼의 수를 제어하는 데 사용될 수 있음.
         // 이 파라미터의 기본값은 10.
         camera.MaxNumBuffer = 5;
-
+        camera.GetInstantCameraNodeMap();
         // c_countOfImagesToGrab 이미지의 캡처 시작.
         // 카메라 장치는 연속 취득을 설정하는 기본 구성으로 파라미터화됨.
         camera.StartGrabbing(c_countOfImagesToGrab);
@@ -120,6 +131,10 @@ int main(int /*argc*/, char* /*argv*/[])
         Mat test, src;
         Mat test2, src2;
 
+        // Set the "raw" gain value to 400
+        // If you want to know the resulting gain in dB, use the formula given in this topic
+        //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
+        
         // 왜 ?
         CImageFormatConverter formatConverter;
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
@@ -130,9 +145,9 @@ int main(int /*argc*/, char* /*argv*/[])
         {
             //시간경과를 보여주기 위해 증가
             time_watch++;
-
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
             camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
+
 
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
@@ -177,7 +192,7 @@ int main(int /*argc*/, char* /*argv*/[])
                         if (result.at<float>(i, j) >= threshold_min && result.at<float>(i, j) <= threshold_max) {
                             // 임계값 이상의 좌표에 template(pattern) 크기만큼을 더해 사각형을 그림.
                             // OpenCV의 경우 RGB 순서가 아닌 BGR 순서로 표시함.
-                            rectangle(img_out, Point(j, i), Point(j + templ.cols, i + templ.rows), Scalar(0, 0, 255), 1);
+                            //rectangle(img_out, Point(j, i), Point(j + templ.cols, i + templ.rows), Scalar(0, 0, 255), 1);
                             histogram[(int)img_out.at<uchar>(i, j)]++;
 
                         }
@@ -208,8 +223,8 @@ int main(int /*argc*/, char* /*argv*/[])
                 // 조건문로 유사도 일정 값 넘어가면 종료
                 //double compareSimilarity = compareHist(result, result, HISTCMP_CORREL);
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
-                double compareSimilarity = cv::compareHist(result, result, HISTCMP_CORREL);
-                cout << "compareSimilarity : " << compareSimilarity << endl << endl;
+                double Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
+                cout << "Similarity : " << Similarity << endl << endl;
 
 
                 //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
