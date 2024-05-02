@@ -2,24 +2,16 @@
 * 2018848045 최재형 HB솔루션
 */
 
-
-
-
 // pylon API를 사용하기 위한 헤더 파일 포함.
 #include <pylon/PylonIncludes.h>
 // openCV를 사용하기 위한 헤더파일
 #include <opencv2/opencv.hpp> 
 //time을 쓰기 위한 헤더파일
 #include <time.h>
-// Include files used by samples.
-
 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
-
-// Include file to use pylon universal instant camera parameters.
-#include <pylon/BaslerUniversalInstantCamera.h>
 
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
@@ -28,9 +20,6 @@ using namespace Pylon;
 // std 사용을 위한 네임스페이스
 using namespace cv;
 using namespace std;
-
-// Namespace for using pylon universal instant camera parameters.
-using namespace Basler_UniversalCameraParams;
 
 // 캡처할 이미지의 수를 정의.
 static const uint32_t c_countOfImagesToGrab = 300;
@@ -103,20 +92,13 @@ int main(int /*argc*/, char* /*argv*/[])
 
 
     //템블릿 이미지 저장
-    Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE);
-    Mat src_compare = imread("dark.png", cv::IMREAD_GRAYSCALE);
-
-    //compare histogram으로 하나 작성해두기
-    //Mat templ = imread("", cv::IMREAD_GRAYSCALE);
-
+    Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE); //templ용
+    Mat src_compare = imread("dark.png", cv::IMREAD_GRAYSCALE); //compare용
 
     try
     {
         // 첫 번째로 찾은 카메라 장치로 인스턴트 카메라 객체 생성.
         CInstantCamera camera(CTlFactory::GetInstance().CreateFirstDevice());
-        
-        // 카메라의 모델 이름 출력.
-        cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
 
         // MaxNumBuffer 파라미터는 캡처를 위해 할당된 버퍼의 수를 제어하는 데 사용될 수 있음.
         // 이 파라미터의 기본값은 10.
@@ -135,7 +117,6 @@ int main(int /*argc*/, char* /*argv*/[])
         // If you want to know the resulting gain in dB, use the formula given in this topic
         //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
         
-        // 왜 ?
         CImageFormatConverter formatConverter;
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
         CPylonImage pylonImage;
@@ -157,16 +138,13 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
                 cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
                 cout << "Gray Peak : " << (uint32_t)pImageBuffer[0] << endl;
-                //cout << "Compare Peak : " <<
                 cout << "time : " << time_watch << endl << endl;
-
 
                 // 이미지 데이터 변환 후 그레이 스케일 변환 작업
                 // pylonImage에서 ptrGrabResult로 이미지 데이터를 변환하는 작업
                 formatConverter.Convert(pylonImage, ptrGrabResult);
 
                 // ptrGrabResult에서 가져온 이미지 데이터를 Mat형식으로 변환
-                //GetHeight uint32_t
                 Mat src = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)pylonImage.GetBuffer());
 
                 //src이미지를 GRAY 스케일로 변환
@@ -205,30 +183,25 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat src_hist, src_hist_result, templ_hist, templ_hist_img;
                 Mat src_compare_hist, src_compare_result;
                 Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
-                
-                //threshold(src, threshold_img, 200, 255, THRESH_BINARY); // 히스토그램의 이진화
-                
 
-                calc_Histo(src, src_hist, histsize, range); // 히스토그램 계산
-                draw_histo(src_hist, src_hist_result); //히스토그램 그래프 그리기
+                //calc_Histo(src, src_hist, histsize, range); // 히스토그램 계산
+                //draw_histo(src_hist, src_hist_result); //히스토그램 그래프 그리기
 
-                calc_Histo(src_compare, src_compare_hist, histsize, range); // 히스토그램 계산
-                draw_histo(src_compare_hist, src_compare_result); //히스토그램 그래프 그리기
+                //calc_Histo(src_compare, src_compare_hist, histsize, range); // 히스토그램 계산
+                //draw_histo(src_compare_hist, src_compare_result); //히스토그램 그래프 그리기
 
                 //위 코드 함수
-                //create_hist(src, src_hist, src_hist_result); // src 히스토그램 및 그래프 그리기
-                //create_hist(src_compare, src_compare_hist, src_compare_result);
+                create_hist(src, src_hist, src_hist_result);
+                create_hist(src_compare, src_compare_hist, src_compare_result);
 
                 
                 // 조건문로 유사도 일정 값 넘어가면 종료
-                //double compareSimilarity = compareHist(result, result, HISTCMP_CORREL);
-                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교
+                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
                 double Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
                 cout << "Similarity : " << Similarity << endl << endl;
 
 
                 //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
-                
                 
                 // 히스토그램 2개 compareHist()로 비교해보기
                 // int method 
@@ -257,9 +230,6 @@ int main(int /*argc*/, char* /*argv*/[])
                 imshow("result", result);
                 imshow("hist", src_hist_result);
                 imshow("Compare Histogram", src_compare_result);
-                //imshow("templ_hist", templ_hist_img); compare histogram 만들어두기
-                //imshow("Thresholded", threshold_img);
-                //imshow("threshold_hist_result", threshold_hist_result);
 
                 waitKey(1);
 
@@ -289,7 +259,7 @@ int main(int /*argc*/, char* /*argv*/[])
     while (cin.get() != '\n');
 
     // 모든 pylon 리소스를 해제.
-    PylonTerminate();
+    //PylonTerminate();
 
     return exitCode;
 }
