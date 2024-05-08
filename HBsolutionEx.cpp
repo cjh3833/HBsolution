@@ -8,13 +8,11 @@
 #include <opencv2/opencv.hpp>
 //time을 쓰기 위한 헤더파일
 #include <time.h>
-
 #include <windows.h>
 #include <iostream>
 #include <iomanip> // 10진수 -> 16진수
 #include <chrono>
 #include <thread>
-
 
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
@@ -22,14 +20,15 @@
 
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
-using namespace Pylon;
 // cv 객체 사용을 위한 네임스페이스
 // std 사용을 위한 네임스페이스
+using namespace Pylon;
 using namespace cv;
 using namespace std;
 
 // 캡처할 이미지의 수를 정의.
 static const uint32_t c_countOfImagesToGrab = 300;
+
 
 //히스토그램 계산 함수
 void calc_Histo(const Mat& img, Mat& hist, int bins, int range_max = 256)
@@ -41,6 +40,7 @@ void calc_Histo(const Mat& img, Mat& hist, int bins, int range_max = 256)
 
     calcHist(&img, 1, channels, Mat(), hist, 1, histSize, ranges);
 }
+
 
 //히스토그램 드로잉 함수
 void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
@@ -61,6 +61,7 @@ void draw_histo(Mat hist, Mat& hist_img, Size size = Size(256, 200)) {
     flip(hist_img, hist_img, 0); // x축 기준 영상 뒤집기
 }
 
+
 //히스토그램 그리는 클래스
 void create_hist(Mat img, Mat& hist, Mat& hist_img)
 {
@@ -69,38 +70,35 @@ void create_hist(Mat img, Mat& hist, Mat& hist_img)
     draw_histo(hist, hist_img); //히스토그램 그래프 그리기
 }
 
-void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) {
-    hSerial = CreateFile(portName,
-        GENERIC_READ | GENERIC_WRITE,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
 
-    if (hSerial == INVALID_HANDLE_VALUE) {
+void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) { // 매개변수로 핸들, 포트번호
+    hSerial = CreateFile(portName, GENERIC_READ | GENERIC_WRITE,0,NULL,OPEN_EXISTING,0,NULL);
+    // createFile로 조명파일 생성
+
+    if (hSerial == INVALID_HANDLE_VALUE) { // 오류발생시 출력 후 종료
         std::cerr << "Error opening serial port: " << GetLastError() << std::endl;
-        exit(1);  // 오류 코드와 함께 종료
-    } std::cerr << "Success opening serial port!" << endl;
+        exit(1);
+    } 
+    std::cerr << "Success opening serial port!" << endl; // 포트 연결 성공시 출력
 
-    //ERROR_FILE_NOT_FOUND (2) - 지정된 파일이나 디바이스를 찾을 수 없음 (잘못된 포트 이름 또는 없는 포트).
-    //ERROR_ACCESS_DENIED (5) - 접근 권한이 거부됨 (포트가 다른 프로세스에 의해 사용 중이거나 권한 부족).
     /*
+    ERROR_FILE_NOT_FOUND (2) - 지정된 파일이나 디바이스를 찾을 수 없음 (잘못된 포트 이름 또는 없는 포트).
+    ERROR_ACCESS_DENIED (5) - 접근 권한이 거부됨 (포트가 다른 프로세스에 의해 사용 중이거나 권한 부족).
     ERROR_INVALID_PARAMETER (87) - 함수에 잘못된 매개변수가 전달됨 (인자 오류).
     ERROR_GEN_FAILURE (31) - 장치에 연결된 일반적인 오류 (하드웨어 또는 드라이버 문제).
     ERROR_SHARING_VIOLATION (32) - 파일 또는 리소스 접근 공유 위반 (다른 프로세스/스레드가 사용 중).
     ERROR_OPERATION_ABORTED (995) - 외부에서 중단된 입출력 작업 (작업 취소됨).
     */
 
-    DCB dcbSerialParams = { 0 };
-    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+    DCB dcbSerialParams = { 0 };  //Serial통신에 필요한 구조체
+    dcbSerialParams.DCBlength = sizeof(dcbSerialParams); // 통신에 필요한 sizeof 받아두나 ?
     if (!GetCommState(hSerial, &dcbSerialParams)) {
         std::cerr << "Error getting state: " << GetLastError() << std::endl;
         CloseHandle(hSerial);
         exit(1);
     } std::cerr << "Success getting state!" << endl;
 
-
+    //dcbSerialParams 구조체에 속상 값 부여(우리가 쓰는 조명 장치에 원래 사용되어야 하는 기본 값들)
     dcbSerialParams.BaudRate = CBR_9600;
     dcbSerialParams.ByteSize = 8; // 전송 데이터는 3바이트의 문자
     dcbSerialParams.StopBits = ONESTOPBIT; // 스탑 비트 1
@@ -110,17 +108,15 @@ void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) {
         std::cerr << "Error setting serial port state: " << GetLastError() << std::endl;
         CloseHandle(hSerial);
         exit(1);
-    } std::cerr << "Success setting serial port state!" << endl;
+    } 
+    std::cerr << "Success setting serial port state!" << endl;
 }
-
-
-
-
 
 
 // 2. 데이터 전송 - 커맨드를 바이트로 변환하여 시리얼 포트를 통해 전송합니다.WriteFile 함수를 사용하여 데이터를 전송합니다.
 bool WriteToSerialPort(HANDLE hSerial, const BYTE* buffer, DWORD bytesToWrite) {
     DWORD bytesWritten;
+    //WriteFile() 함수를 통해 전송
     BOOL result = WriteFile(hSerial, buffer, bytesToWrite, &bytesWritten, NULL);
     return result && bytesWritten == bytesToWrite;
 }
@@ -131,8 +127,6 @@ bool ReadFromSerialPort(HANDLE hSerial, BYTE* buffer, DWORD bufferSize, DWORD& b
     BOOL result = ReadFile(hSerial, buffer, bufferSize, &bytesRead, NULL);
     return result != 0;
 }
-
-
 
 
 // 4. 시리얼 포트 닫기 - 통신이 완료되면 시리얼 포트를 닫습니다. 
@@ -157,32 +151,19 @@ int light_controll_bright(HANDLE hSerial, int bright) {
 
 
 int main(int /*argc*/, char* /*argv*/[])
-{
+{ 
     HANDLE hSerial;
-
-
-    // 이미지 결과 연산을 시켜줄 변수
-    int method = 1;
-    double minVal, maxVal;
     Point minLoc, maxLoc, matchLoc;
     Mat result;
     clock_t start, end;
-    int histsize = 256, range = 256;
-    int bright = 0;
 
-    //히스토그램
-    int histogram[256] = { 0 };
+    int method = 1, histsize = 256, range = 256, histogram[256] = { 0 };
+    int  bright = 0, time_watch = 0, exitcode = 0;
 
-    //임계값 설정
+    double minVal, maxVal;
     double threshold_max = 0.05;
     double threshold_min = 0.02;
-
-    //시간 경과를 보여줄 것
-    int time_watch = 0;
     double time_working = 0.0;
-
-    // 샘플 애플리케이션의 종료 코드.
-    int exitCode = 0;
 
     // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
     PylonInitialize();
@@ -190,8 +171,6 @@ int main(int /*argc*/, char* /*argv*/[])
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE); //templ용
     Mat src_compare = imread("5_07.jpeg", cv::IMREAD_GRAYSCALE); //compare용
-
-
 
     try
     {
@@ -211,30 +190,31 @@ int main(int /*argc*/, char* /*argv*/[])
         Mat test, src;
         Mat test2, src2;
 
-        // Set the "raw" gain value to 400
-        // If you want to know the resulting gain in dB, use the formula given in this topic
+        // 최소 gain값 설정
         //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
 
         CImageFormatConverter formatConverter;
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
         CPylonImage pylonImage;
 
-        OpenSerialPort(hSerial, L"COM4");  // 포트 이름 확인 필요   // + 포트번호를 변수에 넣기 가능?
+        OpenSerialPort(hSerial, L"COM4");  // 포트시리얼, 포트이름 설정
 
-        light_controll_bright(hSerial, bright); // 시작하면 초기 밝기 0으로 맞춰주고 시작
+        // 시작하면 초기 밝기 0으로 맞춰주고 시작
+        //int형이지만 저장안해서 밝기 0으로 시작가능
+        light_controll_bright(hSerial, bright);
 
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
-            //시간경과를 보여주기 위해 증가
-            time_watch++;
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
             camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
-
 
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
             {
+                //시간경과를 보여주기 위해 증가
+                time_watch++;
+
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 //cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
@@ -263,7 +243,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
 
                 // 주어진 행력의 최소값, 최대값을 찾는 함수로 최소값, 최대값이 있는 좌표정보도 함께 알아낼 수 있음
-                //Val -> 값 표시,     Loc -> 좌표표시
+                // Val -> 값 표시,     Loc -> 좌표표시
                 minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 
                 //작동시간 체크 이후 GRAY로 변경, 그 뒤 작동시간 체크, geometric, masking기법 사용
@@ -292,11 +272,9 @@ int main(int /*argc*/, char* /*argv*/[])
                 //calc_Histo(src_compare, src_compare_hist, histsize, range); // 히스토그램 계산
                 //draw_histo(src_compare_hist, src_compare_result); //히스토그램 그래프 그리기
 
-                //위 코드 함수
+                //위 코드 함수, 히스토그램 계산 + 그리기
                 create_hist(src, src_hist, src_hist_result);
                 create_hist(src_compare, src_compare_hist, src_compare_result);
-
-
 
                 // 추후 조건문로 유사도 일정 값 넘어가면 종료
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
@@ -304,11 +282,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 cout << "Similarity : " << Similarity << endl;
 
 
-                if (Similarity < 0.5) // 유사도가 일정 이하일경우에만 실행 
-                    bright = light_controll_bright(hSerial, bright);
-                else if (Similarity >= 0.5)
+                if (Similarity >= 0.5) // 유사도가 일정이상일 경우 밝기만 출력
                     std::cerr << "Bright : " << bright << endl << endl;
-
+                else if (Similarity < 0.5) // 유사도가 일정 이하일경우에만 실행 
+                    bright = light_controll_bright(hSerial, bright);
+               
 
                 //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
                 //{
@@ -348,6 +326,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 // 
                 // 5. EMD
                 // 직관적이지만 가장 느림
+                // 
                 //compareHist(src_hist_img, templ_hist_img, 1); //hist1, hist2, int method
                 //이 뒤 해당하는 값에 따라 light controller, gain, exposer 값 수정
 
@@ -359,7 +338,6 @@ int main(int /*argc*/, char* /*argv*/[])
                 imshow("Compare Histogram", src_compare_result);
 
                 waitKey(1);
-
 
 #ifdef PYLON_WIN_BUILD
                 // 캡처된 이미지를 표시.
