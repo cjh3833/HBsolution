@@ -141,6 +141,20 @@ void CloseSerialPort(HANDLE hSerial) {
 }
 
 
+int light_controll_bright(HANDLE hSerial, int bright) {
+    bright++;
+    BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
+    if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
+        std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
+        exit(1);
+    }
+    //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
+    std::cerr << "Bright: " << bright << endl << endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 밝기 변화 시간 간격 ms
+
+    return bright;
+}
+
 
 int main(int /*argc*/, char* /*argv*/[])
 {
@@ -154,7 +168,7 @@ int main(int /*argc*/, char* /*argv*/[])
     Mat result;
     clock_t start, end;
     int histsize = 256, range = 256;
-    int bright = -1;
+    int bright = 0;
 
     //히스토그램
     int histogram[256] = { 0 };
@@ -176,6 +190,8 @@ int main(int /*argc*/, char* /*argv*/[])
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE); //templ용
     Mat src_compare = imread("5_07.jpeg", cv::IMREAD_GRAYSCALE); //compare용
+
+
 
     try
     {
@@ -205,6 +221,8 @@ int main(int /*argc*/, char* /*argv*/[])
 
         OpenSerialPort(hSerial, L"COM4");  // 포트 이름 확인 필요   // + 포트번호를 변수에 넣기 가능?
 
+        light_controll_bright(hSerial, bright); // 시작하면 초기 밝기 0으로 맞춰주고 시작
+
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
@@ -219,10 +237,10 @@ int main(int /*argc*/, char* /*argv*/[])
             {
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
-                cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
-                cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
+                //cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
+                //cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
                 cout << "Gray Peak : " << (uint32_t)pImageBuffer[0] << endl;
-                cout << "time : " << time_watch << endl << endl;
+                cout << "time : " << time_watch << endl;
 
                 // 이미지 데이터 변환 후 그레이 스케일 변환 작업
                 // pylonImage에서 ptrGrabResult로 이미지 데이터를 변환하는 작업
@@ -283,27 +301,31 @@ int main(int /*argc*/, char* /*argv*/[])
                 // 추후 조건문로 유사도 일정 값 넘어가면 종료
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
                 double Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
-                cout << "Similarity : " << Similarity << endl << endl;
+                cout << "Similarity : " << Similarity << endl;
 
 
+                if (Similarity < 0.5) // 유사도가 일정 이하일경우에만 실행 
+                    bright = light_controll_bright(hSerial, bright);
+                else if (Similarity >= 0.5)
+                    std::cerr << "Bright : " << bright << endl << endl;
 
 
-                if (Similarity >= 0.5)
-                {
-                    continue;
-                }
-                else if (Similarity < 0.5) {
-                    // 커맨드 전송 예제
-                    bright++;
-                    BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
-                    if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
-                        std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
-                        exit(1);
-                    } std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
-
-                    //  if (i >= value) { break; } // 임계값에 다다르면 밝기 변화 정지
-                }
+                //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
+                //{
+                //    continue;
+                //}
+                //else if (Similarity < 0.5) { // 유사도가 일정 이하일 경우 light controller을 사용하여 밝기 +1
+                //    // 커맨드 전송 예제
+                //    
+                //    BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
+                //    if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
+                //        std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
+                //        exit(1);
+                //    } std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
+                //    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 밝기 변화 시간 간격 ms
+                //    bright++;
+                //    //  if (i >= value) { break; } // 임계값에 다다르면 밝기 변화 정지
+                //}
 
 
                 //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
