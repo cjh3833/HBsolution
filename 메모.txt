@@ -1,74 +1,81 @@
-1. ÅÆÇÃ¸´ ÀÌ¹ÌÁö ¹ÞÀºµÚ È÷½ºÅä±×·¥, inshow
-2. 2°³ÀÇ È÷½ºÅä±×·¥ ºñ±³
-3. ¹à±â ¿Ã¸®°Å³ª ³»¸®±â
+1. íƒ¬í”Œë¦¿ ì´ë¯¸ì§€ ë°›ì€ë’¤ ížˆìŠ¤í† ê·¸ëž¨, inshow
+2. 2ê°œì˜ ížˆìŠ¤í† ê·¸ëž¨ ë¹„êµ
+3. ë°ê¸° ì˜¬ë¦¬ê±°ë‚˜ ë‚´ë¦¬ê¸°
 
 
-histogramÀÇ peak Ãâ·Â
-ex) 0~255 ÀÖÀ¸¸é ÇöÀç pick : 128  ÀÌ·±½ÄÀ¸·Î
+histogramì˜ peak ì¶œë ¥
+ex) 0~255 ìžˆìœ¼ë©´ í˜„ìž¬ pick : 128  ì´ëŸ°ì‹ìœ¼ë¡œ
 
-Á¶¸íÀÌ 0ÀÌ¸é peakµµ 0ÀÏÅ×´Ï
-Á¶¸íÀ» 1¾¿ ¿Ã¸®¸é¼­ ÃÖÀûÀÇ peak È®ÀÎ
+ì¡°ëª…ì´ 0ì´ë©´ peakë„ 0ì¼í…Œë‹ˆ
+ì¡°ëª…ì„ 1ì”© ì˜¬ë¦¬ë©´ì„œ ìµœì ì˜ peak í™•ì¸
 
 04_16
-- templÀÌ ¾Æ´Ñ ÃÖÀû»óÅÂÀÇ img_outÀ» histogramÈ­ -> compare histogram
-- light controller, gain, ³ëÃâ°ª ÀûÀýÈ÷ ¼³Á¤
-- ¹à±â Á¶Àý ÈÄ gain,³ëÃâ°ª ¼³Á¤ÇÏ´ÂÁö ? ¾Æ´Ï¸é ¹à±â,gain,³ëÃâ°ª µ¿½Ã¿¡ ¼³Á¤ÇÏ´ÂÁö
+- templì´ ì•„ë‹Œ ìµœì ìƒíƒœì˜ img_outì„ histogramí™” -> compare histogram
+- light controller, gain, ë…¸ì¶œê°’ ì ì ˆížˆ ì„¤ì •
+- ë°ê¸° ì¡°ì ˆ í›„ gain,ë…¸ì¶œê°’ ì„¤ì •í•˜ëŠ”ì§€ ? ì•„ë‹ˆë©´ ë°ê¸°,gain,ë…¸ì¶œê°’ ë™ì‹œì— ì„¤ì •í•˜ëŠ”ì§€
 
-//°á·Ð auto·Î Á¶Á¤ÇÏÁö¸¸ ¼öµ¿À¸·Î Á¶ÀýÇÒ ¼ö ÀÖ´ÂÁö È®ÀÎÇØº¸±â
+//ê²°ë¡  autoë¡œ ì¡°ì •í•˜ì§€ë§Œ ìˆ˜ë™ìœ¼ë¡œ ì¡°ì ˆí•  ìˆ˜ ìžˆëŠ”ì§€ í™•ì¸í•´ë³´ê¸°
 
 04_17
 - histogram with masked
-- compare histogramÀº ±×³É ¹Ù·Î µÈ°Å³Ä or masked¾´ µÚÀÇ ¸ð½ÀÀÎ°¡, masked¾´ µÚ ºñ±³ÇØ¾ßÇÏ´Â°¡ ?
+- compare histogramì€ ê·¸ëƒ¥ ë°”ë¡œ ëœê±°ëƒ or maskedì“´ ë’¤ì˜ ëª¨ìŠµì¸ê°€, maskedì“´ ë’¤ ë¹„êµí•´ì•¼í•˜ëŠ”ê°€ ?
 
-1. src¿¡¼­ ¾èÀºº¹»ç·Î ÇÏ³ª ²¨³Ù µÚ masked
-2. templ - maskedµÈ ÀÌ¹ÌÁö¸¦ histogramÈ­, ÃÖÀû»óÅÂ·Î Ä¸ÃÄ·Î ÇÑ µÚ templ»çÁø -> ¿µ»ó¿¡¼­ º» compare histogram
-3. img_out - maskedµÈ ÀÌ¹ÌÁö¸¦ hitogramÈ­, peak È®ÀÎÇÏ°í ºñ±³
+1. srcì—ì„œ ì–•ì€ë³µì‚¬ë¡œ í•˜ë‚˜ êº¼ë„¨ ë’¤ masked
+2. templ - maskedëœ ì´ë¯¸ì§€ë¥¼ histogramí™”, ìµœì ìƒíƒœë¡œ ìº¡ì³ë¡œ í•œ ë’¤ templì‚¬ì§„ -> ì˜ìƒì—ì„œ ë³¸ compare histogram
+3. img_out - maskedëœ ì´ë¯¸ì§€ë¥¼ hitogramí™”, peak í™•ì¸í•˜ê³  ë¹„êµ
 
 masked == GRAYSCALE ?
-// °á·Ð - ¸¶½ºÅ·ÇÏ´Ï±î ±Ø°ú ±Ø ÀÌºÐ¹ýÀÌ¶ó ºñ±³ ºÒ°¡
+// ê²°ë¡  - ë§ˆìŠ¤í‚¹í•˜ë‹ˆê¹Œ ê·¹ê³¼ ê·¹ ì´ë¶„ë²•ì´ë¼ ë¹„êµ ë¶ˆê°€
 
 
 
-¿¬±¸³ëÆ® 7Â÷
+ì—°êµ¬ë…¸íŠ¸ 7ì°¨
 
-04_29 ¿ù¿äÀÏ
-À¯»çµµ´Â floatÇüÅÂ·Î,
-cv2.HISTCMP_CORREL : »ó°ü°ü°è
-1: ¿ÏÀü ÀÏÄ¡, -1: ¿ÏÀü ºÒÀÏÄ¡, 0: ¹«°ü°è
-ÀÌ ¹æ¹ýÀ¸·Î comparehist Ãâ·ÂÇÏ±â
+04_29 ì›”ìš”ì¼
+ìœ ì‚¬ë„ëŠ” floatí˜•íƒœë¡œ,
+cv2.HISTCMP_CORREL : ìƒê´€ê´€ê³„
+1: ì™„ì „ ì¼ì¹˜, -1: ì™„ì „ ë¶ˆì¼ì¹˜, 0: ë¬´ê´€ê³„
+ì´ ë°©ë²•ìœ¼ë¡œ comparehist ì¶œë ¥í•˜ê¸°
 
-°è»êµÈ HistogramÀ» ºñ±³ÇÏ´Â °ÍÀÌ compareHist
+ê³„ì‚°ëœ Histogramì„ ë¹„êµí•˜ëŠ” ê²ƒì´ compareHist
 
-compareHist ºñ±³¿À·ù -> Â÷¿øÀÌ ´Þ¶ó ÀÏ¾î³ª´Â ¹®Á¦ °°À½
+compareHist ë¹„êµì˜¤ë¥˜ -> ì°¨ì›ì´ ë‹¬ë¼ ì¼ì–´ë‚˜ëŠ” ë¬¸ì œ ê°™ìŒ
 
-src (Height -> uint32_t     witgh -> uint32_t)    , ¿µ»ó uint8_t
-convert ÇØÁØ µÚ ºñ±³ÇØº¸±â
+src (Height -> uint32_t     witgh -> uint32_t)    , ì˜ìƒ uint8_t
+convert í•´ì¤€ ë’¤ ë¹„êµí•´ë³´ê¸°
 
 c++ convert uint32_t to uint8_t
 
-ºñ±³ÇÒ ³»¿ëÀ» Á¤±ÔÈ­ÇØÁÖ°í ºñ±³ÇØ¾ßÇÏ³ª ?
+ë¹„êµí•  ë‚´ìš©ì„ ì •ê·œí™”í•´ì£¼ê³  ë¹„êµí•´ì•¼í•˜ë‚˜ ?
 
-04_30 È­¿äÀÏ
+04_30 í™”ìš”ì¼
 compareHist(result, result, HISTCMP_CORREL)
 compareHist(src_hist, src_hist, HISTCMP_CORREL)
-2°³´Â ÀÎ½ÄÇÏ´Âµ¥ ³ª¸ÓÁö ÀÎ½Äx
+2ê°œëŠ” ì¸ì‹í•˜ëŠ”ë° ë‚˜ë¨¸ì§€ ì¸ì‹x
 
 
-gain, ³ëÃâµµ´Â ÁöÁ¤ÇÒ ¼ö ÀÖ´Â°¡ - Áú¹®ÇÏ±â
-
-
-
-05_02 ¸ñ¿äÀÏ
-
-compareHist ÇØ°á, ºñ±³ Àß µÊ 0.9995
-Gain - ÃÖ´ëÇÑ ³·°Ô -> pylon»ó¿¡¼­ °¡Àå ³·Àº Gain°ª 100 ¼³Á¤ ¿Ï·á
-³ëÃâ½Ã°£ : ÃÖ´ë frame rateº¸´Ù ³·°Ô     ÃÖ´ë frame rate -> 1.0 ~ 1.1   -> ÇÁ·¹ÀÓ 0.999967 ¼³Á¤¿Ï·á
+gain, ë…¸ì¶œë„ëŠ” ì§€ì •í•  ìˆ˜ ìžˆëŠ”ê°€ - ì§ˆë¬¸í•˜ê¸°
 
 
 
+05_02 ëª©ìš”ì¼
 
-³²Àº ÀÛ¾÷
+compareHist í•´ê²°, ë¹„êµ ìž˜ ë¨ 0.9995
+Gain - ìµœëŒ€í•œ ë‚®ê²Œ -> pylonìƒì—ì„œ ê°€ìž¥ ë‚®ì€ Gainê°’ 100 ì„¤ì • ì™„ë£Œ
+ë…¸ì¶œì‹œê°„ : ìµœëŒ€ frame rateë³´ë‹¤ ë‚®ê²Œ     ìµœëŒ€ frame rate -> 1.0 ~ 1.1   -> í”„ë ˆìž„ 0.999967 ì„¤ì •ì™„ë£Œ
+
+
+05_07 í™”ìš”ì¼
+light controller í†µì‹ ì™„ë£Œ
+ìœ ì‚¬ìœ¨ ì¼ì • ì´í•˜ì¼ ê²½ìš° ë°ê¸° +1 ì„±ê³µ
+
+
+í”¼í¬ê°’ì´ ì¼ì •ì´ìƒ ì»¤ì§€ë©´ ë°ê¸° -1í•˜ë„ë¡ ì„¤ì •í•˜ê¸°
+ê°€ë” ë„˜ì–´ê°€ëŠ” í˜„ìƒ ìˆ˜ì •í•˜ê¸°
+
+
+ë‚¨ì€ ìž‘ì—…
 -------------------------------
 compareHist
-Light controller Åë½Å
-Light controller Åë½Å ÈÄ À¯»çµµ Á¶Á¤
+Light controller í†µì‹ 
+Light controller í†µì‹  í›„ ìœ ì‚¬ë„ ì¡°ì •
