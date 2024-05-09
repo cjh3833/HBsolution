@@ -1,4 +1,4 @@
-1. 탬플릿 이미지 받은뒤 히스토그램, inshow
+ㄴ1. 탬플릿 이미지 받은뒤 히스토그램, inshow
 2. 2개의 히스토그램 비교
 3. 밝기 올리거나 내리기
 
@@ -71,11 +71,20 @@ light controller 통신완료
 
 
 피크값이 일정이상 커지면 밝기 -1하도록 설정하기
-가끔 넘어가는 현상 수정하기
+가끔 넘어가는 현상 수정하기 -완료-
 
+
+05_09 목요일
+compare histogram peak값, src의 histogram값 비교하고
+일정 이하일 경우 light controller up
+일정 이상일 경우 light controller down ?
 
 남은 작업
 -------------------------------
-compareHist
-Light controller 통신
-Light controller 통신 후 유사도 조정
+두 히스토그램의 peak값 출력
+그 peak값 비교, bright 변수 조정
+
+유사도부터인가 peak값부터인가 ?
+peak값 비교 후 업다운?
+유사도 일정이상시 업다운?
+아니면 둘 다 동시 검사 ?
