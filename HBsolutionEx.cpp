@@ -33,7 +33,7 @@ static const uint32_t c_countOfImagesToGrab = 300;
 //히스토그램 계산 함수
 void calc_Histo(const Mat& img, Mat& hist, int bins, int range_max = 256)
 {
-    int histSize[] = { bins }; // 히스토그램 계급 개수
+    int histSize[] = { 256 }; // 히스토그램 계급 개수
     float range[] = { 0, (float)range_max }; // 0번 채널 화소값 범위
     int channels[] = { 0 }; //채널 목록 - 단일 채널
     const float* ranges[] = { range }; //모든 채널 화소 범위
@@ -72,13 +72,13 @@ void create_hist(Mat img, Mat& hist, Mat& hist_img)
 
 
 void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) { // 매개변수로 핸들, 포트번호
-    hSerial = CreateFile(portName, GENERIC_READ | GENERIC_WRITE,0,NULL,OPEN_EXISTING,0,NULL);
+    hSerial = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     // createFile로 조명파일 생성
 
     if (hSerial == INVALID_HANDLE_VALUE) { // 오류발생시 출력 후 종료
         std::cerr << "Error opening serial port: " << GetLastError() << std::endl;
         exit(1);
-    } 
+    }
     std::cerr << "Success opening serial port!" << endl; // 포트 연결 성공시 출력
 
     /*
@@ -108,7 +108,7 @@ void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) { // 매개변수로 핸들, 포�
         std::cerr << "Error setting serial port state: " << GetLastError() << std::endl;
         CloseHandle(hSerial);
         exit(1);
-    } 
+    }
     std::cerr << "Success setting serial port state!" << endl;
 }
 
@@ -134,8 +134,11 @@ void CloseSerialPort(HANDLE hSerial) {
     CloseHandle(hSerial);
 }
 
+void Bright(int bright) {
+    std::cerr << "Bright : " << bright << endl << endl;
+}
 
-int light_controll_bright(HANDLE hSerial, int bright) {
+int Light_Controll_Bright(HANDLE hSerial, int bright) {
     bright++;
     BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
     if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
@@ -143,7 +146,7 @@ int light_controll_bright(HANDLE hSerial, int bright) {
         exit(1);
     }
     //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
-    std::cerr << "Bright: " << bright << endl << endl;
+    Bright(bright);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 밝기 변화 시간 간격 ms
 
     return bright;
@@ -151,7 +154,7 @@ int light_controll_bright(HANDLE hSerial, int bright) {
 
 
 int main(int /*argc*/, char* /*argv*/[])
-{ 
+{
     HANDLE hSerial;
     Point minLoc, maxLoc, matchLoc;
     Mat result;
@@ -170,7 +173,17 @@ int main(int /*argc*/, char* /*argv*/[])
 
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE); //templ용
+    if (templ.empty())
+    {
+        std::cerr << "templ 이미지 없음" << std::endl;
+        return 1;
+    }
     Mat src_compare = imread("5_07.jpeg", cv::IMREAD_GRAYSCALE); //compare용
+    if (src_compare.empty())
+    {
+        std::cerr << "compare 이미지 없음" << std::endl;
+        return 1;
+    }
 
     try
     {
@@ -201,7 +214,7 @@ int main(int /*argc*/, char* /*argv*/[])
 
         // 시작하면 초기 밝기 0으로 맞춰주고 시작
         //int형이지만 저장안해서 밝기 0으로 시작가능
-        light_controll_bright(hSerial, bright);
+        Light_Controll_Bright(hSerial, bright);
 
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
@@ -219,7 +232,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 //cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
                 //cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
-                cout << "Gray Peak : " << (uint32_t)pImageBuffer[0] << endl;
+                cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
                 cout << "time : " << time_watch << endl;
 
                 // 이미지 데이터 변환 후 그레이 스케일 변환 작업
@@ -266,6 +279,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat src_compare_hist, src_compare_result;
                 Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
 
+
                 //calc_Histo(src, src_hist, histsize, range); // 히스토그램 계산
                 //draw_histo(src_hist, src_hist_result); //히스토그램 그래프 그리기
 
@@ -276,17 +290,28 @@ int main(int /*argc*/, char* /*argv*/[])
                 create_hist(src, src_hist, src_hist_result);
                 create_hist(src_compare, src_compare_hist, src_compare_result);
 
+                /*int x = 0, y = 0;
+                int pixelvalue = src.at<uchar>(y, x);
+
+                std::cout << "pixel value at (x,y) : " << pixelvalue << std::endl;*/
+
+
+
+
+
+
+
+
                 // 추후 조건문로 유사도 일정 값 넘어가면 종료
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
                 double Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
-                cout << "Similarity : " << Similarity << endl;
-
+                cout << "Similarity : " << Similarity << endl << endl;
 
                 if (Similarity >= 0.5) // 유사도가 일정이상일 경우 밝기만 출력
-                    std::cerr << "Bright : " << bright << endl << endl;
+                    Bright(bright);
                 else if (Similarity < 0.5) // 유사도가 일정 이하일경우에만 실행 
-                    bright = light_controll_bright(hSerial, bright);
-               
+                    bright = Light_Controll_Bright(hSerial, bright);
+
 
                 //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
                 //{
@@ -356,7 +381,7 @@ int main(int /*argc*/, char* /*argv*/[])
         // 예외 처리.
         cerr << "An exception occurred." << endl
             << e.GetDescription() << endl;
-        exitCode = 1;
+        int exitCode = 1;
     }
 
     // 종료 전에 대기를 비활성화하려면 다음 두 줄을 주석 처리.
@@ -366,5 +391,5 @@ int main(int /*argc*/, char* /*argv*/[])
     // 모든 pylon 리소스를 해제.
     //PylonTerminate();
 
-    return exitCode;
+    return 1;
 }
