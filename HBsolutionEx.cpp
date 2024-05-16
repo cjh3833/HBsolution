@@ -18,6 +18,8 @@
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
 
+#define Optimal 0.07
+
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
 // cv 객체 사용을 위한 네임스페이스
@@ -27,7 +29,7 @@ using namespace cv;
 using namespace std;
 
 // 캡처할 이미지의 수를 정의.
-static const uint32_t c_countOfImagesToGrab = 300;
+static const uint32_t c_countOfImagesToGrab = 10000;
 
 
 //히스토그램 계산 함수
@@ -138,16 +140,33 @@ void Bright(int bright) {
     std::cerr << "Bright : " << bright << endl << endl;
 }
 
-int Light_Controll_Bright(HANDLE hSerial, int bright) {
-    bright++;
+int Light_Controll_Bright(HANDLE hSerial, int bright, int Similarity) {
+    if (Similarity <= Optimal) {
+        bright++;
+    }
+    else {
+        return 0;
+    }
     BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
     if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
         std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
         exit(1);
     }
-    //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
     Bright(bright);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 밝기 변화 시간 간격 ms
+    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // 밝기 변화 시간 간격 ms
+
+    //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
+
+   //
+   //BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
+   //if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
+   //    std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
+   //    exit(1);
+   //}
+   ////std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
+   //Bright(bright);
+   //bright++;
+   //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
 
     return bright;
 }
@@ -178,7 +197,7 @@ int main(int /*argc*/, char* /*argv*/[])
         std::cerr << "templ 이미지 없음" << std::endl;
         return 1;
     }
-    Mat src_compare = imread("5_07.jpeg", cv::IMREAD_GRAYSCALE); //compare용
+    Mat src_compare = imread("compare_src.png", cv::IMREAD_GRAYSCALE); //compare용
     if (src_compare.empty())
     {
         std::cerr << "compare 이미지 없음" << std::endl;
@@ -196,13 +215,13 @@ int main(int /*argc*/, char* /*argv*/[])
         camera.GetInstantCameraNodeMap();
         // c_countOfImagesToGrab 이미지의 캡처 시작.
         // 카메라 장치는 연속 취득을 설정하는 기본 구성으로 파라미터화됨.
-        camera.StartGrabbing(c_countOfImagesToGrab);
+        camera.StartGrabbing();
 
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
         CGrabResultPtr ptrGrabResult;
         Mat test, src;
         Mat test2, src2;
-
+        double Similarity = 0.0;
         // 최소 gain값 설정
         //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
 
@@ -214,26 +233,22 @@ int main(int /*argc*/, char* /*argv*/[])
 
         // 시작하면 초기 밝기 0으로 맞춰주고 시작
         //int형이지만 저장안해서 밝기 0으로 시작가능
-        Light_Controll_Bright(hSerial, bright);
+        Light_Controll_Bright(hSerial, bright, Similarity);
 
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
             // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
-            camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
+            camera.RetrieveResult(500, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // 이미지가 성공적으로 캡처되었는가?
             if (ptrGrabResult->GrabSucceeded())
             {
-                //시간경과를 보여주기 위해 증가
-                time_watch++;
-
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
                 //cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
                 //cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
                 cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
-                cout << "time : " << time_watch << endl;
 
                 // 이미지 데이터 변환 후 그레이 스케일 변환 작업
                 // pylonImage에서 ptrGrabResult로 이미지 데이터를 변환하는 작업
@@ -293,24 +308,22 @@ int main(int /*argc*/, char* /*argv*/[])
                 /*int x = 0, y = 0;
                 int pixelvalue = src.at<uchar>(y, x);
 
-                std::cout << "pixel value at (x,y) : " << pixelvalue << std::endl;*/
-
-
-
-
-
-
-
+                std::cout << "pixel value at (x,y) : " << pixelvalue << std::endl;
+                */
 
                 // 추후 조건문로 유사도 일정 값 넘어가면 종료
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
-                double Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
-                cout << "Similarity : " << Similarity << endl << endl;
+                Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
+                cout << "Similarity : " << Similarity << endl;
 
-                if (Similarity >= 0.5) // 유사도가 일정이상일 경우 밝기만 출력
-                    Bright(bright);
-                else if (Similarity < 0.5) // 유사도가 일정 이하일경우에만 실행 
-                    bright = Light_Controll_Bright(hSerial, bright);
+                if (Similarity <= Optimal) { // 유사도가 일정이상일 경우 밝기만 출력
+                    //Bright(bright);
+                    bright = Light_Controll_Bright(hSerial, bright, Similarity);
+                }
+                //else // 유사도가 일정 이하일경우에만 실행 
+
+
+
 
 
                 //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
