@@ -18,7 +18,7 @@
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
 
-#define Optimal 0.07
+#define Optimal 0.5
 
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
@@ -72,7 +72,7 @@ void create_hist(Mat img, Mat& hist, Mat& hist_img)
     draw_histo(hist, hist_img); //히스토그램 그래프 그리기
 }
 
-
+// 1. 시리얼 포트 열기
 void OpenSerialPort(HANDLE& hSerial, LPCWSTR portName) { // 매개변수로 핸들, 포트번호
     hSerial = CreateFile(portName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     // createFile로 조명파일 생성
@@ -133,6 +133,7 @@ bool ReadFromSerialPort(HANDLE hSerial, BYTE* buffer, DWORD bufferSize, DWORD& b
 
 // 4. 시리얼 포트 닫기 - 통신이 완료되면 시리얼 포트를 닫습니다. 
 void CloseSerialPort(HANDLE hSerial) {
+    cout << endl << "시리얼 포트를 닫습니다 " << endl;
     CloseHandle(hSerial);
 }
 
@@ -142,10 +143,7 @@ void Bright(int bright) {
 
 int Light_Controll_Bright(HANDLE hSerial, int bright, int Similarity) {
     if (Similarity <= Optimal) {
-        bright++;
-    }
-    else {
-        return 0;
+        ++bright;
     }
     BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
     if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
@@ -153,7 +151,9 @@ int Light_Controll_Bright(HANDLE hSerial, int bright, int Similarity) {
         exit(1);
     }
     Bright(bright);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // 밝기 변화 시간 간격 ms
+
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
 
     //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
 
@@ -316,10 +316,18 @@ int main(int /*argc*/, char* /*argv*/[])
                 Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
                 cout << "Similarity : " << Similarity << endl;
 
+
                 if (Similarity <= Optimal) { // 유사도가 일정이상일 경우 밝기만 출력
-                    //Bright(bright);
                     bright = Light_Controll_Bright(hSerial, bright, Similarity);
                 }
+
+                /*
+                else if (Similarity > Optimal)
+                {
+                    CloseSerialPort(hSerial);
+                }
+                */
+
                 //else // 유사도가 일정 이하일경우에만 실행 
 
 
@@ -370,10 +378,12 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 //출력
                 imshow("src", img_out);
+                imshow("compare_src", src_compare);
                 imshow("templ", templ);
                 imshow("result", result);
                 imshow("hist", src_hist_result);
                 imshow("Compare Histogram", src_compare_result);
+
 
                 waitKey(1);
 
