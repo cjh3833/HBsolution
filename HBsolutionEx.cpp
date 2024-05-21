@@ -18,10 +18,9 @@
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
 
-#define Optimal 0.9
+#define Optimal 0.7
 
 // pylon 객체 사용을 위한 네임스페이스.
-// cout 사용을 위한 네임스페이스.
 // cv 객체 사용을 위한 네임스페이스
 // std 사용을 위한 네임스페이스
 using namespace Pylon;
@@ -148,8 +147,9 @@ int Light_Controll_Bright(HANDLE hSerial, int bright, double Similarity) {
         std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
         exit(1);
     }
+
     Bright(bright);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 밝기 변화 시간 간격 ms
 
     return bright;
 
@@ -164,8 +164,6 @@ int Light_Controll_Bright(HANDLE hSerial, int bright, double Similarity) {
     //Bright(bright);
     //bright++;
     //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
-
-
 }
 
 
@@ -174,7 +172,6 @@ int main(int /*argc*/, char* /*argv*/[])
     HANDLE hSerial;
     Point minLoc, maxLoc, matchLoc;
     Mat result;
-    //time_t start, end, finish;
     clock_t start, end;
 
     int method = 1, histsize = 256, range = 256, histogram[256] = { 0 };
@@ -198,7 +195,6 @@ int main(int /*argc*/, char* /*argv*/[])
         std::cerr << "compare 이미지 없음" << std::endl;
         return 1;
     }
-
     try
     {
         // 첫 번째로 찾은 카메라 장치로 인스턴트 카메라 객체 생성.
@@ -215,10 +211,8 @@ int main(int /*argc*/, char* /*argv*/[])
         // 이 스마트 포인터는 캡처 결과 데이터를 받게 됨.
         CGrabResultPtr ptrGrabResult;
         Mat test, src;
-        Mat test2, src2;
+        Mat src2;
         double Similarity = 0;
-        // 최소 gain값 설정
-        //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
 
         CImageFormatConverter formatConverter;
         formatConverter.OutputPixelFormat = PixelType_BGR8packed;
@@ -243,8 +237,6 @@ int main(int /*argc*/, char* /*argv*/[])
             {
                 // 이미지 데이터에 접근.
                 const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
-                //cout << "SizeX : " << ptrGrabResult->GetWidth() << endl;
-                //cout << "SizeY : " << ptrGrabResult->GetHeight() << endl;
                 cout << "Gray value of first pixel: " << (uint32_t)pImageBuffer[0] << endl;
 
                 // 이미지 데이터 변환 후 그레이 스케일 변환 작업
@@ -259,8 +251,6 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 Mat img_out;
                 src.copyTo(img_out); //src을 img_out으로 얕은 복사, 패턴매칭 하기위함
-
-
 
                 // 원본 이미지에서 탬플릿 이미지와 일치하는 영역을 찾는 알고리즘
                 matchTemplate(src, templ, result, method);
@@ -279,16 +269,13 @@ int main(int /*argc*/, char* /*argv*/[])
                             // OpenCV의 경우 RGB 순서가 아닌 BGR 순서로 표시함.
                             //rectangle(img_out, Point(j, i), Point(j + templ.cols, i + templ.rows), Scalar(0, 0, 255), 1);
                             histogram[(int)img_out.at<uchar>(i, j)]++;
-
                         }
                     }
                 }
 
-
                 Mat src_hist, src_hist_result, templ_hist, templ_hist_img;
                 Mat src_compare_hist, src_compare_result;
                 Mat threshold_img, threshold_hist, threshold_hist_result; // 히스토그램의 이진화
-
 
                 //calc_Histo(src, src_hist, histsize, range); // 히스토그램 계산
                 //draw_histo(src_hist, src_hist_result); //히스토그램 그래프 그리기
@@ -306,37 +293,22 @@ int main(int /*argc*/, char* /*argv*/[])
                 std::cout << "pixel value at (x,y) : " << pixelvalue << std::endl;
                 */
 
-                // 추후 조건문로 유사도 일정 값 넘어가면 종료
-                // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
+                Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
+                cout << "Similarity : " << Similarity << endl;
 
-                if (Similarity < Optimal) {
+
+                /*if (Similarity < Optimal) {
                     Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
 
-                    cout << "Similarity : " << Similarity << endl;
                     bright = Light_Controll_Bright(hSerial, bright, Similarity);
+                    cout << "Similarity : " << Similarity << endl;
                 }
 
                 else {
                     Bright(bright);
-                }
+                    cout << "Similarity : " << Similarity << endl;
+                }*/
 
-                //else if (Similarity >= Optimal) {
-                //    Bright(bright);
-                //}
-
-                //if (Similarity >= Optimal) {
-                //    Bright(bright);
-                //}
-
-                //else if (Similarity < Optimal) { // 유사도가 일정이상일 경우 밝기만 출력
-                //    bright = Light_Controll_Bright(hSerial, bright, Similarity);
-                //}
-
-                //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
-                //{
-                //    continue;
-                //}
-                //else if (Similarity < 0.5) { // 유사도가 일정 이하일 경우 light controller을 사용하여 밝기 +1
                 //    // 커맨드 전송 예제
                 //    
                 //    BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
@@ -348,7 +320,6 @@ int main(int /*argc*/, char* /*argv*/[])
                 //    bright++;
                 //    //  if (i >= value) { break; } // 임계값에 다다르면 밝기 변화 정지
                 //}
-
 
                 //create_hist(threshold_img, threshold_hist, threshold_hist_result); //마스킹된 이미지 그리기
 
@@ -371,22 +342,18 @@ int main(int /*argc*/, char* /*argv*/[])
                 // 5. EMD
                 // 직관적이지만 가장 느림
                 // 
-                //compareHist(src_hist_img, templ_hist_img, 1); //hist1, hist2, int method
-                //이 뒤 해당하는 값에 따라 light controller, gain, exposer 값 수정
 
                 //출력
-                imshow("src", img_out);
-                imshow("compare_src", src_compare);
                 imshow("templ", templ);
                 imshow("result", result);
                 imshow("hist", src_hist_result);
                 imshow("Compare Histogram", src_compare_result);
+                imshow("compare_src", src_compare);
+                imshow("src", img_out);
 
                 end = clock();
 
                 cout << "소요시간 : " << difftime(end, start) / CLOCKS_PER_SEC << endl;
-
-                Sleep(58);
 
                 waitKey(1);
 
