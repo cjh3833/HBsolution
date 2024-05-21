@@ -18,7 +18,7 @@
 #    include <pylon/PylonGUI.h> // Windows 환경에서 GUI 관련 기능을 사용하기 위한 헤더 파일.
 #endif
 
-#define Optimal 0.5
+#define Optimal 0.9
 
 // pylon 객체 사용을 위한 네임스페이스.
 // cout 사용을 위한 네임스페이스.
@@ -29,7 +29,7 @@ using namespace cv;
 using namespace std;
 
 // 캡처할 이미지의 수를 정의.
-static const uint32_t c_countOfImagesToGrab = 10000;
+static const uint32_t c_countOfImagesToGrab = 300;
 
 
 //히스토그램 계산 함수
@@ -133,7 +133,7 @@ bool ReadFromSerialPort(HANDLE hSerial, BYTE* buffer, DWORD bufferSize, DWORD& b
 
 // 4. 시리얼 포트 닫기 - 통신이 완료되면 시리얼 포트를 닫습니다. 
 void CloseSerialPort(HANDLE hSerial) {
-    cout << endl << "시리얼 포트를 닫습니다 " << endl;
+    cout << "닫는다 2" << endl;
     CloseHandle(hSerial);
 }
 
@@ -141,34 +141,31 @@ void Bright(int bright) {
     std::cerr << "Bright : " << bright << endl << endl;
 }
 
-int Light_Controll_Bright(HANDLE hSerial, int bright, int Similarity) {
-    if (Similarity <= Optimal) {
-        ++bright;
-    }
+int Light_Controll_Bright(HANDLE hSerial, int bright, double Similarity) {
+    bright++;
     BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
     if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
         std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
         exit(1);
     }
     Bright(bright);
-
-
     std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
+
+    return bright;
 
     //std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
 
-   //
-   //BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
-   //if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
-   //    std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
-   //    exit(1);
-   //}
-   ////std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
-   //Bright(bright);
-   //bright++;
-   //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
+    //BYTE commandC[] = { 0x43, 0x31, static_cast<BYTE>(bright) };  // 채널 1, 데이터 250, 출력 ON
+    //if (!WriteToSerialPort(hSerial, commandC, sizeof(commandC))) {
+    //    std::cerr << "Error write to serial port: " << GetLastError() << std::endl;
+    //    exit(1);
+    //}
+    ////std::cerr << "Success Write to serial port!  " << "Bright: " << bright << endl;
+    //Bright(bright);
+    //bright++;
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 밝기 변화 시간 간격 ms
 
-    return bright;
+
 }
 
 
@@ -177,29 +174,27 @@ int main(int /*argc*/, char* /*argv*/[])
     HANDLE hSerial;
     Point minLoc, maxLoc, matchLoc;
     Mat result;
+    //time_t start, end, finish;
     clock_t start, end;
 
     int method = 1, histsize = 256, range = 256, histogram[256] = { 0 };
-    int  bright = 0, time_watch = 0, exitcode = 0;
-
+    int  bright = 0;
     double minVal, maxVal;
     double threshold_max = 0.05;
     double threshold_min = 0.02;
-    double time_working = 0.0;
 
     // pylon 메소드를 사용하기 전에 pylon 런타임을 초기화해야 함.
     PylonInitialize();
 
     //템블릿 이미지 저장
     Mat templ = imread("templ_04_10.png", cv::IMREAD_GRAYSCALE); //templ용
-    if (templ.empty())
-    {
+    if (templ.empty()) {
         std::cerr << "templ 이미지 없음" << std::endl;
         return 1;
     }
+
     Mat src_compare = imread("compare_src.png", cv::IMREAD_GRAYSCALE); //compare용
-    if (src_compare.empty())
-    {
+    if (src_compare.empty()) {
         std::cerr << "compare 이미지 없음" << std::endl;
         return 1;
     }
@@ -221,7 +216,7 @@ int main(int /*argc*/, char* /*argv*/[])
         CGrabResultPtr ptrGrabResult;
         Mat test, src;
         Mat test2, src2;
-        double Similarity = 0.0;
+        double Similarity = 0;
         // 최소 gain값 설정
         //camera.GainRaw.SetValue(100); //100이 가장 낮은 Gain값
 
@@ -238,7 +233,9 @@ int main(int /*argc*/, char* /*argv*/[])
         // c_countOfImagesToGrab 이미지가 검색되었을 때 Camera.StopGrabbing()이 자동으로 호출됨.
         while (camera.IsGrabbing())
         {
-            // 이미지를 기다린 다음 검색. 5000ms의 타임아웃 사용.
+            start = clock(); //시간체크 시작
+
+            // 이미지를 기다린 다음 검색. 500ms의 타임아웃 사용.
             camera.RetrieveResult(500, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // 이미지가 성공적으로 캡처되었는가?
@@ -263,7 +260,7 @@ int main(int /*argc*/, char* /*argv*/[])
                 Mat img_out;
                 src.copyTo(img_out); //src을 img_out으로 얕은 복사, 패턴매칭 하기위함
 
-                start = clock(); //시간체크 시작
+
 
                 // 원본 이미지에서 탬플릿 이미지와 일치하는 영역을 찾는 알고리즘
                 matchTemplate(src, templ, result, method);
@@ -286,9 +283,7 @@ int main(int /*argc*/, char* /*argv*/[])
                         }
                     }
                 }
-                end = clock(); //시간체크 끝
 
-                double searching_time = difftime(end, start) / CLOCKS_PER_SEC;
 
                 Mat src_hist, src_hist_result, templ_hist, templ_hist_img;
                 Mat src_compare_hist, src_compare_result;
@@ -313,26 +308,29 @@ int main(int /*argc*/, char* /*argv*/[])
 
                 // 추후 조건문로 유사도 일정 값 넘어가면 종료
                 // compareHist니까 src의 히스토그램, src_compare의 히스토그램을 비교 후 유사율 출력
-                Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
-                cout << "Similarity : " << Similarity << endl;
 
+                if (Similarity < Optimal) {
+                    Similarity = cv::compareHist(src_hist, src_compare_hist, HISTCMP_CORREL);
 
-                if (Similarity <= Optimal) { // 유사도가 일정이상일 경우 밝기만 출력
+                    cout << "Similarity : " << Similarity << endl;
                     bright = Light_Controll_Bright(hSerial, bright, Similarity);
                 }
 
-                /*
-                else if (Similarity > Optimal)
-                {
-                    CloseSerialPort(hSerial);
+                else {
+                    Bright(bright);
                 }
-                */
 
-                //else // 유사도가 일정 이하일경우에만 실행 
+                //else if (Similarity >= Optimal) {
+                //    Bright(bright);
+                //}
 
+                //if (Similarity >= Optimal) {
+                //    Bright(bright);
+                //}
 
-
-
+                //else if (Similarity < Optimal) { // 유사도가 일정이상일 경우 밝기만 출력
+                //    bright = Light_Controll_Bright(hSerial, bright, Similarity);
+                //}
 
                 //if (Similarity >= 0.5) // 유사도 일정이상 높을 경우 다음 작업 실행
                 //{
@@ -384,6 +382,11 @@ int main(int /*argc*/, char* /*argv*/[])
                 imshow("hist", src_hist_result);
                 imshow("Compare Histogram", src_compare_result);
 
+                end = clock();
+
+                cout << "소요시간 : " << difftime(end, start) / CLOCKS_PER_SEC << endl;
+
+                Sleep(58);
 
                 waitKey(1);
 

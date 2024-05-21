@@ -93,3 +93,17 @@ compare histogram peak값, src의 histogram값 비교하고
 peak값 비교 후 업다운?
 유사도 일정이상시 업다운?
 아니면 둘 다 동시 검사 ?
+
+
+
+
+
+10차 연구노트
+
+5_20
+트라이 해보기
+1. 빛 컨트롤하는것만 따로 뺴서 while문으로 만들기
+2. 유사도가 일정이상 끝나면 light controller와 통신 종료
+
+
+5_21
