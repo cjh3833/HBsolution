@@ -152,6 +152,9 @@
     <Text Include="pattern_matching.txt" />
     <Text Include="메모.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HBsolHistogram.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
